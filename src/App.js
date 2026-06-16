@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import "@/App.css";
 
-// Lazy‑load all page components
 const Landing = React.lazy(() => import("@/pages/Landing"));
 const ProfileSetup = React.lazy(() => import("@/pages/ProfileSetup"));
 const Profile = React.lazy(() => import("@/pages/Profile"));
@@ -15,47 +14,51 @@ const Login = React.lazy(() => import("@/pages/Login"));
 const VerifyEmail = React.lazy(() => import("@/pages/VerifyEmail"));
 const ForgotPassword = React.lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("@/pages/ResetPassword"));
+const Tutors = React.lazy(() => import("@/pages/Tutors"));
+const TutorDetail = React.lazy(() => import("@/pages/TutorDetail"));
+const TutorCreate = React.lazy(() => import("@/pages/TutorCreate"));
+const TutorEdit = React.lazy(() => import("@/pages/TutorEdit"));
+const MyTutorAds = React.lazy(() => import("@/pages/MyTutorAds"));   // <-- new
+
+function AuthOnlyRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-sm text-[#6B6B70]">Loading…</div></div>;
+  if (!user) return <Navigate to="/" replace />;
+  return children;
+}
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-[#6B6B70]">Loading…</div>
-      </div>
-    );
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-sm text-[#6B6B70]">Loading…</div></div>;
   if (!user) return <Navigate to="/" replace />;
+  if (user.onboarding_complete === false) return <Navigate to="/profile/setup" replace />;
   return children;
 }
 
 function AppRouter() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" /></div>}>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/app" element={<Navigate to="/profile" replace />} />
-
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        <Route path="/profile/setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+        <Route path="/profile/setup" element={<AuthOnlyRoute><ProfileSetup /></AuthOnlyRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-
-        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/accept-privacy" element={<ProtectedRoute><AcceptPrivacy /></ProtectedRoute>} />
 
+        {/* Tutors */}
+        <Route path="/tutors" element={<Tutors />} />
+        <Route path="/tutors/create" element={<AuthOnlyRoute><TutorCreate /></AuthOnlyRoute>} />
+        <Route path="/tutors/myads" element={<AuthOnlyRoute><MyTutorAds /></AuthOnlyRoute>} />   {/* new */}
+        <Route path="/tutors/:tutorId" element={<TutorDetail />} />
+        <Route path="/tutors/edit/:tutorId" element={<AuthOnlyRoute><TutorEdit /></AuthOnlyRoute>} />
+
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
@@ -68,19 +71,7 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <AppRouter />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: "#FFFFFF",
-                border: "1px solid #E7E5E0",
-                boxShadow: "0 4px 12px -4px rgba(15, 15, 16, 0.08), 0 2px 6px -1px rgba(15, 15, 16, 0.04)",
-                borderRadius: "0.5rem",
-                color: "#0F0F10",
-                fontSize: "0.875rem",
-              },
-            }}
-          />
+          <Toaster position="top-right" toastOptions={{ style: { background: "#FFFFFF", border: "1px solid #E7E5E0", boxShadow: "0 4px 12px -4px rgba(15, 15, 16, 0.08), 0 2px 6px -1px rgba(15, 15, 16, 0.04)", borderRadius: "0.5rem", color: "#0F0F10", fontSize: "0.875rem" }}} />
         </AuthProvider>
       </BrowserRouter>
     </div>

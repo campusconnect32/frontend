@@ -5,11 +5,7 @@ import ImageUpload from "@/components/ImageUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { setupProfile, requestAndUpdateGPS, ipLocationFallback } from "@/lib/api";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  ArrowRight,
-  MapPin,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin } from "lucide-react";
 
 const STEPS = ["Location", "About You", "Photos"];
 
@@ -25,6 +21,10 @@ export default function ProfileSetup() {
   // Form state
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [displayName, setDisplayName] = useState(user?.name || "");
+  const [gender, setGender] = useState("");
+  const [yearOfStudy, setYearOfStudy] = useState("");
+  const [course, setCourse] = useState("");
+  const [campus, setCampus] = useState("");
   const [profileImage, setProfileImage] = useState(user?.picture || "");
   const [galleryImages, setGalleryImages] = useState([]);
 
@@ -38,6 +38,19 @@ export default function ProfileSetup() {
     }
     if (step === 1) {
       if (!dateOfBirth.trim()) { toast.error("Date of Birth is required"); return false; }
+      // Age validation (optional but recommended)
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+      if (age < 18) { toast.error("You must be at least 18 years old"); return false; }
+      if (age > 100) { toast.error("Age must be 100 or less"); return false; }
+
+      if (!gender) { toast.error("Gender is required"); return false; }
+      if (!yearOfStudy.trim()) { toast.error("Year of Study is required"); return false; }
+      if (!course.trim()) { toast.error("Course is required"); return false; }
+      if (!campus.trim()) { toast.error("Campus is required"); return false; }
       return true;
     }
     return true;
@@ -58,6 +71,10 @@ export default function ProfileSetup() {
       const payload = {
         date_of_birth: dateOfBirth,
         display_name: displayName,
+        gender,
+        year_of_study: yearOfStudy,
+        course,
+        campus,
         profile_image: profileImage,
         gallery_images: galleryImages,
       };
@@ -143,13 +160,40 @@ export default function ProfileSetup() {
         {step === 1 && (
           <div className="bg-white border border-[#E7E5E0] rounded-2xl p-6 space-y-4">
             <h2 className="font-semibold text-lg">About You</h2>
+
             <div>
               <label className="text-xs font-semibold uppercase">Display Name</label>
               <input value={displayName} onChange={e => setDisplayName(e.target.value)} className="neo-input mt-1" placeholder="How you'll appear" />
             </div>
+
             <div>
               <label className="text-xs font-semibold uppercase">Date of Birth <span className="text-red-500">*</span></label>
               <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="neo-input mt-1" required />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase">Gender <span className="text-red-500">*</span></label>
+              <select value={gender} onChange={e => setGender(e.target.value)} className="neo-input mt-1">
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase">Year of Study <span className="text-red-500">*</span></label>
+              <input value={yearOfStudy} onChange={e => setYearOfStudy(e.target.value)} className="neo-input mt-1" placeholder="e.g. 2nd Year" />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase">Course <span className="text-red-500">*</span></label>
+              <input value={course} onChange={e => setCourse(e.target.value)} className="neo-input mt-1" placeholder="e.g. Computer Science" />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase">Campus <span className="text-red-500">*</span></label>
+              <input value={campus} onChange={e => setCampus(e.target.value)} className="neo-input mt-1" placeholder="e.g. Main Campus" />
             </div>
           </div>
         )}

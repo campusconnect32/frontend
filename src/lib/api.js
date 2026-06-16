@@ -25,8 +25,13 @@ api.interceptors.response.use(
   }
 );
 
-// ========== Image compression helper ==========
+// ========== Image compression helper (safe for remote URLs) ==========
 const compressImage = (base64Str, maxWidth = 800, quality = 0.7) => {
+  // If it's already a remote URL, don't draw it on canvas (prevents tainted canvas error)
+  if (base64Str.startsWith("http")) {
+    return Promise.resolve(base64Str);
+  }
+  // Process only data‑URLs (newly selected local images)
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -135,7 +140,6 @@ export async function requestAndUpdateGPS() {
 
 // ========== Profile ==========
 export async function setupProfile(payload) {
-  // Compress images before sending
   const compressedPayload = { ...payload };
   if (payload.profile_image) {
     compressedPayload.profile_image = await compressImage(payload.profile_image);
@@ -158,7 +162,6 @@ export async function updateProfile(payload) {
   delete cleanPayload.city;
   delete cleanPayload.latitude;
   delete cleanPayload.longitude;
-  // Compress images if present
   if (cleanPayload.profile_image) {
     cleanPayload.profile_image = await compressImage(cleanPayload.profile_image);
   }

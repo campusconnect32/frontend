@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import ImageUpload from "@/components/ImageUpload";
 import { useAuth } from "@/contexts/AuthContext";
@@ -186,6 +186,52 @@ const Profile = React.memo(() => {
           )}
         </div>
 
+        {/* Student Info Section */}
+        <div className="bg-white border border-[#E7E5E0] rounded-2xl p-5 mb-4 space-y-3">
+          <h3 className="text-xs font-semibold uppercase text-[#6B6B70]">Student Info</h3>
+
+          <div>
+            <label className="text-xs font-semibold uppercase">Gender</label>
+            {editing ? (
+              <select value={form.gender || ""} onChange={e => updateField("gender", e.target.value)} className="neo-input mt-1">
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            ) : (
+              <p className="text-sm">{profile.gender || "Not set"}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase">Year of Study</label>
+            {editing ? (
+              <input value={form.year_of_study || ""} onChange={e => updateField("year_of_study", e.target.value)} className="neo-input mt-1" placeholder="e.g. 2nd Year" />
+            ) : (
+              <p className="text-sm">{profile.year_of_study || "Not set"}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase">Course</label>
+            {editing ? (
+              <input value={form.course || ""} onChange={e => updateField("course", e.target.value)} className="neo-input mt-1" placeholder="e.g. Computer Science" />
+            ) : (
+              <p className="text-sm">{profile.course || "Not set"}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase">Campus</label>
+            {editing ? (
+              <input value={form.campus || ""} onChange={e => updateField("campus", e.target.value)} className="neo-input mt-1" placeholder="e.g. Main Campus" />
+            ) : (
+              <p className="text-sm">{profile.campus || "Not set"}</p>
+            )}
+          </div>
+        </div>
+
         {/* Gallery */}
         <div className="bg-white border border-[#E7E5E0] rounded-2xl p-5 mb-4">
           <label className="text-xs font-semibold uppercase mb-2 block">Gallery</label>
@@ -207,7 +253,7 @@ const Profile = React.memo(() => {
           </button>
         )}
 
-        {/* Delete Account – no waiting period */}
+        {/* Delete Account – immediate */}
         <div className="mt-8 text-center">
           <button
             onClick={handleDeleteAccount}

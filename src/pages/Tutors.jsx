@@ -1,0 +1,114 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { api } from "@/lib/api";
+import { Search, Plus, Edit3 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import Navbar from "@/components/Navbar";
+
+export default function Tutors() {
+  const { user } = useAuth();
+  const [tutors, setTutors] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchTutors();
+  }, []);
+
+  const fetchTutors = async (code = "") => {
+    setLoading(true);
+    try {
+      const params = code ? { search: code } : {};
+      const { data } = await api.get("/tutors", { params });
+      setTutors(data || []);
+    } catch (err) {
+      console.error("Failed to fetch tutors", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    setSearch(e.target.value);
+    fetchTutors(e.target.value);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FAFAF7]">
+      <Navbar />
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <h1 className="font-display text-3xl font-semibold">Find a Tutor</h1>
+          <div className="flex gap-2">
+            {user && (
+              <Link
+                to="/tutors/myads"
+                className="neo-btn neo-btn-secondary !px-4 !py-2"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                My Ads
+              </Link>
+            )}
+            <Link
+              to="/tutors/create"
+              className="neo-btn bg-purple-600 border-purple-600 !px-4 !py-2"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Be a Tutor
+            </Link>
+          </div>
+        </div>
+
+        {/* Search bar – flex layout with icon properly aligned */}
+        <div className="flex items-center border border-[#E7E5E0] rounded-xl bg-white mb-8 overflow-hidden">
+          <Search className="w-5 h-5 text-[#6B6B70] ml-3 flex-shrink-0" />
+          <input
+            value={search}
+            onChange={handleSearch}
+            placeholder="Search by course code..."
+            className="w-full py-3 pl-2 pr-4 text-sm bg-transparent outline-none border-none"
+          />
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        )}
+
+        {/* Results */}
+        {!loading && tutors.length === 0 && (
+          <div className="text-center py-12 text-[#6B6B70]">
+            {search ? "No tutors found for that course code." : "No tutors available yet."}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tutors.map((t) => (
+            <Link
+              key={t.tutor_id}
+              to={`/tutors/${t.tutor_id}`}
+              className="bg-white border border-[#E7E5E0] rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div className="aspect-video bg-[#F5F3EE] flex items-center justify-center">
+                {t.image ? (
+                  <img src={t.image} alt={t.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-4xl text-[#6B6B70]">🎓</span>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-lg">{t.title}</h3>
+                <p className="text-sm text-[#6B6B70]">{t.course_name} – {t.course_code}</p>
+                <div className="mt-2">
+                  <span className="chip chip-accent text-xs font-medium">{t.price_range}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
