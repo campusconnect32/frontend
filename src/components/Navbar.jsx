@@ -22,6 +22,7 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
+          <Link to="/market" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Market</Link>
           <Link to="/tutors" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Tutors</Link>
           <Link to="/profile" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Profile</Link>
         </div>
@@ -42,6 +43,9 @@ export default function Navbar() {
                 <SheetTitle className="font-display text-xl">Menu</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col p-4 gap-1">
+                <SheetClose asChild>
+                  <Link to="/market" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Market</Link>
+                </SheetClose>
                 <SheetClose asChild>
                   <Link to="/tutors" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Tutors</Link>
                 </SheetClose>

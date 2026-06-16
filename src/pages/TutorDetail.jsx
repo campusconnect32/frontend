@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Edit3 } from "lucide-react";
+import { ArrowLeft, Trash2, Edit3, Star, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 
@@ -14,11 +14,20 @@ export default function TutorDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/tutors/${tutorId}`)
-      .then(res => setTutor(res.data))
-      .catch(() => toast.error("Tutor not found"))
-      .finally(() => setLoading(false));
+    fetchTutor();
   }, [tutorId]);
+
+  const fetchTutor = async () => {
+    try {
+      const res = await api.get(`/tutors/${tutorId}`);
+      setTutor(res.data);
+    } catch {
+      toast.error("Tutor not found");
+      navigate("/tutors");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!window.confirm("Delete this tutor ad?")) return;
@@ -35,6 +44,8 @@ export default function TutorDetail() {
   if (!tutor) return <div className="min-h-screen"><Navbar /><div className="p-8 text-center">Tutor not found.</div></div>;
 
   const isOwner = user?.user_id === tutor.user_id;
+  const avgRating = tutor.average_rating || 0;
+  const ratingCount = tutor.rating_count || 0;
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -44,7 +55,7 @@ export default function TutorDetail() {
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
 
-        <div className="bg-white border border-[#E7E5E0] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[#E7E5E0] rounded-2xl overflow-hidden mb-8">
           <div className="aspect-video bg-[#F5F3EE] flex items-center justify-center">
             {tutor.image ? (
               <img src={tutor.image} alt={tutor.title} className="w-full h-full object-cover" />
@@ -62,6 +73,29 @@ export default function TutorDetail() {
               <span className="text-sm font-semibold uppercase text-[#6B6B70]">Price Range</span>
               <p className="text-lg font-medium">{tutor.price_range}</p>
             </div>
+
+            {/* Average Rating */}
+            <div className="flex items-center gap-1">
+              {[1,2,3,4,5].map(star => (
+                <Star
+                  key={star}
+                  className={`w-5 h-5 ${star <= avgRating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                />
+              ))}
+              {ratingCount > 0 && (
+                <span className="text-sm text-[#6B6B70] ml-1">({avgRating}) · {ratingCount} review{ratingCount > 1 ? 's' : ''}</span>
+              )}
+              {ratingCount === 0 && <span className="text-sm text-[#6B6B70] ml-1">No ratings yet</span>}
+            </div>
+
+            {/* Reviews button */}
+            <Link
+              to={`/tutors/${tutorId}/reviews`}
+              className="neo-btn neo-btn-secondary !py-2 !px-4 inline-flex items-center gap-2"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Reviews
+            </Link>
 
             {isOwner && (
               <div className="flex gap-2 pt-2">

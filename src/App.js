@@ -15,10 +15,18 @@ const VerifyEmail = React.lazy(() => import("@/pages/VerifyEmail"));
 const ForgotPassword = React.lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("@/pages/ResetPassword"));
 const Tutors = React.lazy(() => import("@/pages/Tutors"));
-const TutorDetail = React.lazy(() => import("@/pages/TutorDetail"));
 const TutorCreate = React.lazy(() => import("@/pages/TutorCreate"));
 const TutorEdit = React.lazy(() => import("@/pages/TutorEdit"));
-const MyTutorAds = React.lazy(() => import("@/pages/MyTutorAds"));   // <-- new
+const MyTutorAds = React.lazy(() => import("@/pages/MyTutorAds"));
+const TutorReviews = React.lazy(() => import("@/pages/TutorReviews"));
+const Market = React.lazy(() => import("@/pages/Market"));
+const MarketCreate = React.lazy(() => import("@/pages/MarketCreate"));
+const MarketDetail = React.lazy(() => import("@/pages/MarketDetail"));
+const MarketEdit = React.lazy(() => import("@/pages/MarketEdit"));
+const MyMarketListings = React.lazy(() => import("@/pages/MyMarketListings"));
+const MyMarketCustomers = React.lazy(() => import("@/pages/MyMarketCustomers"));
+const CustomerDetail = React.lazy(() => import("@/pages/CustomerDetail"));
+const MarketChat = React.lazy(() => import("@/pages/MarketChat"));
 
 function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
@@ -54,9 +62,19 @@ function AppRouter() {
         {/* Tutors */}
         <Route path="/tutors" element={<Tutors />} />
         <Route path="/tutors/create" element={<AuthOnlyRoute><TutorCreate /></AuthOnlyRoute>} />
-        <Route path="/tutors/myads" element={<AuthOnlyRoute><MyTutorAds /></AuthOnlyRoute>} />   {/* new */}
-        <Route path="/tutors/:tutorId" element={<TutorDetail />} />
+        <Route path="/tutors/myads" element={<AuthOnlyRoute><MyTutorAds /></AuthOnlyRoute>} />
+        <Route path="/tutors/:tutorId/reviews" element={<TutorReviews />} />
         <Route path="/tutors/edit/:tutorId" element={<AuthOnlyRoute><TutorEdit /></AuthOnlyRoute>} />
+
+        {/* Market */}
+        <Route path="/market" element={<Market />} />
+        <Route path="/market/create" element={<AuthOnlyRoute><MarketCreate /></AuthOnlyRoute>} />
+        <Route path="/market/mylistings" element={<AuthOnlyRoute><MyMarketListings /></AuthOnlyRoute>} />
+        <Route path="/market/mycustomers" element={<AuthOnlyRoute><MyMarketCustomers /></AuthOnlyRoute>} />
+        <Route path="/market/customer/:customerId" element={<AuthOnlyRoute><CustomerDetail /></AuthOnlyRoute>} />
+        <Route path="/market/chat/:itemId" element={<AuthOnlyRoute><MarketChat /></AuthOnlyRoute>} />
+        <Route path="/market/:itemId" element={<MarketDetail />} />
+        <Route path="/market/edit/:itemId" element={<AuthOnlyRoute><MarketEdit /></AuthOnlyRoute>} />
 
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
