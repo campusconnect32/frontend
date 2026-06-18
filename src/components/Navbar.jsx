@@ -1,74 +1,101 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Menu, Heart } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+
+const NAV = [
+  { to: "/market", label: "Market" },
+  { to: "/tutors", label: "Tutors" },
+  { to: "/clubs",  label: "Clubs"  },
+  { to: "/profile", label: "Profile" },
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
+  const { pathname } = useLocation();
   if (!user) return null;
-
   const onLogout = async () => { await logout(); navigate("/"); };
 
   return (
-    <nav className="sticky top-0 z-40 bg-[#FAFAF7]/85 backdrop-blur-md border-b border-[#E7E5E0]">
+    <nav className="sticky top-0 z-40 bg-[#F4F1EA]/80 backdrop-blur-xl border-b border-[#E2DCCE]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <Link to="/profile" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-[#0F0F10] text-white rounded-md flex items-center justify-center">
-            <Heart className="w-4 h-4" fill="currentColor" />
+        {/* Brand */}
+        <Link to="/profile" className="flex items-center gap-2.5 flex-shrink-0 group">
+          <div className="w-9 h-9 bg-[#0F0F10] rounded-full grid place-items-center">
+            <span className="font-display text-white text-[15px] leading-none italic">cc</span>
           </div>
-          <span className="font-display text-lg sm:text-xl font-semibold">Campus Connect</span>
+          <div className="leading-none">
+            <div className="font-display text-[19px] font-semibold tracking-tight text-[#0F0F10]">
+              Campus<span className="italic text-[#C4553F]">.</span>Connect
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-[#8A8578] mt-0.5">Est. for students</div>
+          </div>
         </Link>
 
+        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1">
-          <Link to="/market" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Market</Link>
-          <Link to="/tutors" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Tutors</Link>
-          <Link to="/clubs" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Clubs</Link>
-          <Link to="/quiz" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Quizzes</Link>
-          <Link to="/profile" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Profile</Link>
+          {NAV.map((n) => {
+            const active = pathname.startsWith(n.to);
+            return (
+              <Link
+                key={n.to}
+                to={n.to}
+                className={`relative px-3 py-2 text-[13px] font-medium tracking-wide transition-colors ${
+                  active ? "text-[#0F0F10]" : "text-[#5A574E] hover:text-[#0F0F10]"
+                }`}
+              >
+                {n.label}
+                {active && (
+                  <span className="absolute left-3 right-3 -bottom-[1px] h-px bg-[#C4553F]" />
+                )}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={onLogout} className="hidden md:flex p-2 rounded-md hover:bg-[#F5F3EE] text-[#6B6B70]">
-            <LogOut className="w-4 h-4" />
+          <button
+            onClick={onLogout}
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs uppercase tracking-[0.15em] text-[#5A574E] hover:text-[#C4553F] transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign out
           </button>
 
           <Sheet>
             <SheetTrigger asChild>
-              <button className="md:hidden p-2 rounded-md hover:bg-[#F5F3EE]">
+              <button className="md:hidden p-2 rounded-md hover:bg-[#EAE3D2] text-[#0F0F10]">
                 <Menu className="w-5 h-5" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] bg-[#FAFAF7] border-l border-[#E7E5E0] p-0">
-              <SheetHeader className="px-6 py-5 border-b border-[#E7E5E0] text-left">
-                <SheetTitle className="font-display text-xl">Menu</SheetTitle>
+            <SheetContent side="right" className="w-[320px] bg-[#F4F1EA] border-l border-[#E2DCCE] p-0">
+              <SheetHeader className="px-6 py-6 border-b border-[#E2DCCE] text-left">
+                <SheetTitle className="font-display text-2xl font-semibold tracking-tight">
+                  Menu<span className="italic text-[#C4553F]">.</span>
+                </SheetTitle>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-[#8A8578] mt-1">Navigate</p>
               </SheetHeader>
-              <div className="flex flex-col p-4 gap-1">
+              <div className="flex flex-col p-3 gap-0.5">
+                {NAV.map((n) => (
+                  <SheetClose asChild key={n.to}>
+                    <Link
+                      to={n.to}
+                      className="group flex items-center justify-between px-4 py-3.5 rounded-xl text-[15px] font-medium hover:bg-[#EAE3D2] transition-colors"
+                    >
+                      <span>{n.label}</span>
+                      <span className="text-[#C4553F] opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    </Link>
+                  </SheetClose>
+                ))}
+                <div className="h-px bg-[#E2DCCE] my-3" />
                 <SheetClose asChild>
-                  <Link to="/market" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Market</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link to="/tutors" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Tutors</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link to="/clubs" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Clubs</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link to="/quiz" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Quizzes</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link to="/profile" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Profile</Link>
-                </SheetClose>
-                <div className="h-px bg-[#E7E5E0] my-2" />
-                <SheetClose asChild>
-                  <button onClick={onLogout} className="flex items-center gap-2 px-3 py-3 rounded-lg text-[15px] font-medium text-[#C4553F] hover:bg-[#F4E7E1]">
+                  <button onClick={onLogout} className="flex items-center gap-2 px-4 py-3 rounded-xl text-[14px] font-medium text-[#C4553F] hover:bg-[#F4E7E1]">
                     <LogOut className="w-4 h-4" /> Sign out
                   </button>
                 </SheetClose>
               </div>
-              <div className="px-6 py-4 border-t border-[#E7E5E0] text-xs text-[#6B6B70]">
-                <div>Signed in as <span className="text-[#0F0F10]">{user.email}</span></div>
+              <div className="px-6 py-4 border-t border-[#E2DCCE] text-[11px] uppercase tracking-[0.15em] text-[#8A8578]">
+                Signed in as <span className="text-[#0F0F10] normal-case tracking-normal">{user.email}</span>
               </div>
             </SheetContent>
           </Sheet>
