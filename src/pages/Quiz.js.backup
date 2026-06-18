@@ -1,0 +1,191 @@
+import React, { useState } from 'react';
+import { quizData } from '../lib/quizData';
+import './Quiz.css';
+
+const Quiz = () => {
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [score, setScore] = useState(0);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [showDegreeCategories, setShowDegreeCategories] = useState(false);
+
+  const allCategories = quizData.categories;
+  const degreeCategories = quizData.degreeCategories;
+
+  const currentCategory = selectedCategory;
+  const currentQuestions = currentCategory?.questions || [];
+  const currentQuestion = currentQuestions[currentQuestionIndex];
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setCurrentQuestionIndex(0);
+    setSelectedOption(null);
+    setShowExplanation(false);
+    setQuizCompleted(false);
+    setScore(0);
+  };
+
+  const handleOptionSelect = (index) => {
+    if (selectedOption !== null || showExplanation) return;
+    setSelectedOption(index);
+    setShowExplanation(true);
+    if (index === currentQuestion.correctAnswerIndex) {
+      setScore(score + 1);
+    }
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < currentQuestions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setSelectedOption(null);
+      setShowExplanation(false);
+    } else {
+      setQuizCompleted(true);
+    }
+  };
+
+  const handleReset = () => {
+    setSelectedCategory(null);
+    setCurrentQuestionIndex(0);
+    setSelectedOption(null);
+    setShowExplanation(false);
+    setScore(0);
+    setQuizCompleted(false);
+  };
+
+  const getCategoryIcon = (categoryName) => {
+    const iconMap = {
+      'General Knowledge': '🧠',
+      'South African Trivia': '🇿🇦',
+      'Campus Life': '🏫',
+      'Current Affairs': '📰',
+      'Accounting & Accounting Science': '📊',
+      'Law (LLB)': '⚖️',
+      'Computer Science': '💻',
+      'Economics & Economic Science': '📈',
+      'Commerce (General/Finance/HR/Management)': '🏢',
+      'Engineering & Built Environment': '🔧',
+      'Health Sciences': '🏥',
+      'Humanities': '📚',
+      'Science': '🔬'
+    };
+    return iconMap[categoryName] || '📝';
+  };
+
+  if (!selectedCategory) {
+    return (
+      <div className="quiz-container">
+        <h1 className="quiz-title">📝 Campus Connect Quizzes</h1>
+        <p className="quiz-subtitle">Test your knowledge! Choose a category below:</p>
+
+        <div className="category-tabs">
+          <button 
+            className={`tab-button ${!showDegreeCategories ? 'active' : ''}`}
+            onClick={() => setShowDegreeCategories(false)}
+          >
+            🎯 General Quizzes
+          </button>
+          <button 
+            className={`tab-button ${showDegreeCategories ? 'active' : ''}`}
+            onClick={() => setShowDegreeCategories(true)}
+          >
+            🎓 Degree Quizzes
+          </button>
+        </div>
+
+        <div className="category-grid">
+          {(showDegreeCategories ? degreeCategories : allCategories).map((category) => (
+            <div
+              key={category.id}
+              className="category-card"
+              onClick={() => handleCategorySelect(category)}
+            >
+              <div className="category-icon">{getCategoryIcon(category.name)}</div>
+              <h3 className="category-name">{category.name}</h3>
+              {category.faculty && (
+                <p className="category-faculty">{category.faculty}</p>
+              )}
+              <p className="category-count">{category.questions.length} questions</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (quizCompleted) {
+    const percentage = Math.round((score / currentQuestions.length) * 100);
+    let gradeMessage = '';
+    let gradeEmoji = '';
+    if (percentage === 100) { gradeMessage = 'Perfect Score! You\'re a genius! 🌟'; gradeEmoji = '🏆'; }
+    else if (percentage >= 80) { gradeMessage = 'Excellent! You really know your stuff! 🎉'; gradeEmoji = '⭐'; }
+    else if (percentage >= 60) { gradeMessage = 'Good job! Keep learning! 👍'; gradeEmoji = '💪'; }
+    else if (percentage >= 40) { gradeMessage = 'Not bad! Review the answers and try again! 📖'; gradeEmoji = '📚'; }
+    else { gradeMessage = 'Keep studying! You\'ll get better! 💪'; gradeEmoji = '📝'; }
+
+    return (
+      <div className="quiz-container">
+        <div className="quiz-complete">
+          <div className="completion-emoji">{gradeEmoji}</div>
+          <h2>Quiz Complete!</h2>
+          <p className="score-display">
+            You got <span className="score-number">{score}</span> out of <span className="total-number">{currentQuestions.length}</span> correct
+          </p>
+          <p className="percentage-display">{percentage}%</p>
+          <p className="grade-message">{gradeMessage}</p>
+          <button className="retry-button" onClick={handleReset}>
+            🔄 Try Another Quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="quiz-container">
+      <div className="quiz-header">
+        <button className="back-button" onClick={handleReset}>← Back</button>
+        <h2 className="category-title">
+          {getCategoryIcon(selectedCategory.name)} {selectedCategory.name}
+        </h2>
+        <p className="question-counter">
+          Question {currentQuestionIndex + 1} of {currentQuestions.length}
+        </p>
+      </div>
+
+      <div className="question-card">
+        <h3 className="question-text">{currentQuestion.question}</h3>
+        <div className="options-grid">
+          {currentQuestion.options.map((option, index) => {
+            let buttonClass = 'option-button';
+            if (selectedOption !== null) {
+              if (index === currentQuestion.correctAnswerIndex) {
+                buttonClass += ' correct';
+              } else if (index === selectedOption && index !== currentQuestion.correctAnswerIndex) {
+                buttonClass += ' incorrect';
+              } else {
+                buttonClass += ' disabled';
+              }
+            }
+            return (
+              <button
+                key={index}
+                className={buttonClass}
+                onClick={() => handleOptionSelect(index)}
+                disabled={selectedOption !== null}
+              >
+                <span className="option-label">{String.fromCharCode(65 + index)}.</span>
+                {option}
+                {selectedOption !== null && index === currentQuestion.correctAnswerIndex && ' ✅'}
+                {selectedOption !== null && index === selectedOption && index !== currentQuestion.correctAnswerIndex && ' ❌'}
+              </button>
+            );
+          })}
+        </div>
+
+        {showExplanation && (
+          <div className="explanation-box">
+            <h4>💡 Explanation</h4>
+            <p>{currentQuestion.explanation}</
