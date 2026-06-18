@@ -27,6 +27,10 @@ const MyMarketListings = React.lazy(() => import("@/pages/MyMarketListings"));
 const MyMarketCustomers = React.lazy(() => import("@/pages/MyMarketCustomers"));
 const CustomerDetail = React.lazy(() => import("@/pages/CustomerDetail"));
 const MarketChat = React.lazy(() => import("@/pages/MarketChat"));
+const Clubs = React.lazy(() => import("@/pages/Clubs"));
+const ClubCreate = React.lazy(() => import("@/pages/ClubCreate"));
+const ClubDetail = React.lazy(() => import("@/pages/ClubDetail"));
+const ClubChat = React.lazy(() => import("@/pages/ClubChat"));
 
 function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
@@ -75,6 +79,12 @@ function AppRouter() {
         <Route path="/market/chat/:itemId" element={<AuthOnlyRoute><MarketChat /></AuthOnlyRoute>} />
         <Route path="/market/:itemId" element={<MarketDetail />} />
         <Route path="/market/edit/:itemId" element={<AuthOnlyRoute><MarketEdit /></AuthOnlyRoute>} />
+
+        {/* Clubs */}
+        <Route path="/clubs" element={<Clubs />} />
+        <Route path="/clubs/create" element={<AuthOnlyRoute><ClubCreate /></AuthOnlyRoute>} />
+        <Route path="/clubs/:clubId" element={<AuthOnlyRoute><ClubDetail /></AuthOnlyRoute>} />
+        <Route path="/clubs/:clubId/chat" element={<AuthOnlyRoute><ClubChat /></AuthOnlyRoute>} />
 
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
