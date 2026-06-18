@@ -7,6 +7,7 @@ const NAV = [
   { to: "/market", label: "Market" },
   { to: "/tutors", label: "Tutors" },
   { to: "/clubs",  label: "Clubs"  },
+  { to: "/quiz",   label: "Quizzes" },   // ← restored
   { to: "/profile", label: "Profile" },
 ];
 
