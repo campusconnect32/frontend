@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { googleAuth } from "@/lib/api";
-import { Loader2, Mail, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { Loader2, Mail, AlertTriangle, ArrowRight, BookOpen, Users, ShoppingBag, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
 const HERO_IMAGE =
@@ -79,7 +79,7 @@ export default function Landing() {
             );
             if (mountedRef.current) {
               await refresh();
-              toast.success("Welcome to CampusConnect!");
+              toast.success("Welcome to CampusConnect.");
             }
           } catch (error) {
             console.error("Google login failed:", error);
@@ -105,14 +105,21 @@ export default function Landing() {
     window.google.accounts.id.prompt();
   }, [isLoggingIn, googleAvailable, googleError]);
 
+  const pillars = [
+    { icon: ShoppingBag, label: "Marketplace", desc: "Buy and sell essentials within your campus community." },
+    { icon: BookOpen, label: "Tutors", desc: "Find or become a tutor. Knowledge shared is knowledge multiplied." },
+    { icon: Users, label: "Clubs & Societies", desc: "Join student‑led groups that shape campus culture." },
+    { icon: ClipboardList, label: "Quizzes", desc: "Test your knowledge and compete with fellow students." },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F4F1EA] text-[#0F0F10] overflow-hidden">
-      {/* Top bar */}
+    <div className="min-h-screen bg-[#F4F1EA] text-[#1A1A1A] font-sans overflow-hidden selection:bg-[#C4553F]/20">
+      {/* Navigation */}
       <nav className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-6 md:px-12 py-6">
         <Link to="/" className="flex items-baseline gap-2 text-[#F4F1EA] mix-blend-difference">
-          <span className="font-display text-2xl tracking-tight">CampusConnect</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-70">
-            est. ’26
+          <span className="font-serif text-2xl tracking-tight font-semibold">CampusConnect</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-60">
+            EST. ’26
           </span>
         </Link>
         <div className="flex items-center gap-5 text-[#F4F1EA] mix-blend-difference">
@@ -122,7 +129,7 @@ export default function Landing() {
               className="group inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] border-b border-current pb-0.5"
             >
               Open app
-              <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
             </button>
           ) : (
             <>
@@ -139,120 +146,132 @@ export default function Landing() {
               >
                 {isLoggingIn ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 {isLoggingIn ? "Signing in" : "Join"}
-                <ArrowUpRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </>
           )}
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative min-h-screen w-full">
-        {/* Image panel */}
-        <div className="absolute inset-y-0 right-0 w-full md:w-[55%] overflow-hidden">
+      {/* Hero Section */}
+      <section className="relative min-h-screen w-full flex items-center">
+        {/* Background Image */}
+        <div className="absolute inset-0">
           <img
             src={HERO_IMAGE}
-            alt="Campus"
-            className="absolute inset-0 w-full h-full object-cover grayscale-[15%] contrast-[1.05]"
+            alt=""
+            className="w-full h-full object-cover grayscale-[30%] contrast-110"
             onError={(e) => {
               e.currentTarget.src =
-                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%230F0F10'/%3E%3C/svg%3E";
+                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23111827'/%3E%3Ctext x='400' y='300' text-anchor='middle' fill='white' font-size='2rem' font-family='serif'%3ECampusConnect%3C/text%3E%3C/svg%3E";
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#F4F1EA] via-[#F4F1EA]/30 to-transparent md:from-[#F4F1EA]/90 md:via-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F10]/40 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0F0F10]/80 via-[#0F0F10]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F10]/60 via-transparent to-transparent" />
         </div>
 
-        {/* Editorial grid */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-32 md:pt-40 pb-20 grid grid-cols-12 gap-6 min-h-screen items-center">
-          {/* Eyebrow rail */}
-          <div className="col-span-12 md:col-span-1 flex md:flex-col gap-3 md:gap-6 items-start md:pt-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#0F0F10]/60">
-              № 01
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#C4553F]">
-              / Issue
-            </span>
-          </div>
-
-          {/* Headline + CTAs */}
-          <div className="col-span-12 md:col-span-7">
-            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-[#0F0F10]/60 mb-6">
-              A field guide for student life
+        {/* Content */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 py-32 md:py-40">
+          <div className="max-w-3xl">
+            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-[#F4F1EA]/70 mb-6">
+              The Student Common Room — Reimagined
             </p>
-            <h1 className="font-display text-[#0F0F10] leading-[0.92] tracking-[-0.02em] text-5xl sm:text-6xl md:text-7xl lg:text-[7.5rem]">
-              Welcome
-              <br />
-              to <span className="italic font-light text-[#C4553F]">Campus</span>
-              <br />
-              Connect<span className="text-[#C4553F]">.</span>
+            <h1 className="font-serif text-[#F4F1EA] leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl">
+              Where your campus<br />
+              <span className="italic font-light">truly</span> comes alive.
             </h1>
-            <p className="mt-8 max-w-md text-[#0F0F10]/70 text-base md:text-lg leading-relaxed">
-           
+            <p className="mt-8 max-w-xl text-[#F4F1EA]/80 text-lg leading-relaxed">
+              CampusConnect is the official digital home for student life.
+              <br />
+              Market, Tutoring, Clubs, Quizzes — all in one place, built with purpose.
             </p>
 
-            <div className="mt-10 flex flex-col sm:flex-row gap-3 max-w-lg">
+            {/* CTA Buttons */}
+            <div className="mt-12 flex flex-col sm:flex-row gap-4">
               {googleError ? (
-                <div className="flex items-center gap-3 bg-[#0F0F10] text-[#F4F1EA] px-5 py-4 text-sm">
+                <div className="flex items-center gap-3 bg-[#F4F1EA]/10 backdrop-blur-md border border-[#F4F1EA]/20 text-[#F4F1EA] px-6 py-4 rounded-xl text-sm">
                   <AlertTriangle className="w-5 h-5 flex-shrink-0 text-[#C4553F]" />
-                  <span>Google sign‑in is unavailable. Try email instead.</span>
+                  <span>Google sign‑in is unavailable. Please sign up with email below.</span>
                 </div>
               ) : (
                 <button
                   onClick={handleGoogleLogin}
                   disabled={isLoggingIn || !googleAvailable}
-                  className="group relative inline-flex items-center justify-center gap-3 bg-[#0F0F10] text-[#F4F1EA] px-8 h-14 rounded-full text-sm uppercase tracking-[0.2em] transition-all hover:shadow-[0_12px_40px_-12px_rgba(196,85,63,0.6)] disabled:opacity-50"
+                  className="group relative inline-flex items-center justify-center gap-3 bg-[#F4F1EA] text-[#0F0F10] px-8 h-14 rounded-full text-sm font-medium uppercase tracking-[0.15em] transition-all hover:shadow-[0_12px_40px_-12px_rgba(196,85,63,0.8)] disabled:opacity-50"
                 >
                   {isLoggingIn ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4 invert" />
+                    <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4" />
                   )}
-                  {isLoggingIn ? "Signing in" : "Continue with Google"}
-                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  {isLoggingIn ? "Signing in..." : "Continue with Google"}
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </button>
               )}
               <Link
                 to="/signup"
-                className="inline-flex items-center justify-center gap-3 border border-[#0F0F10] text-[#0F0F10] px-8 h-14 rounded-full text-sm uppercase tracking-[0.2em] hover:bg-[#0F0F10] hover:text-[#F4F1EA] transition-colors"
+                className="inline-flex items-center justify-center gap-3 border border-[#F4F1EA]/40 text-[#F4F1EA] px-8 h-14 rounded-full text-sm font-medium uppercase tracking-[0.15em] hover:bg-[#F4F1EA] hover:text-[#0F0F10] transition-colors backdrop-blur-sm"
               >
-                <Mail className="w-4 h-4" /> Email signup
+                <Mail className="w-4 h-4" /> Sign up with Email
               </Link>
             </div>
 
-            <div className="mt-6 text-sm text-[#0F0F10]/60">
+            <div className="mt-8 text-sm text-[#F4F1EA]/60">
               Already a member?{" "}
               <Link
                 to="/login"
-                className="text-[#0F0F10] border-b border-[#0F0F10]/30 hover:border-[#C4553F] hover:text-[#C4553F]"
+                className="text-[#F4F1EA] border-b border-[#F4F1EA]/40 hover:border-[#C4553F] hover:text-[#C4553F] transition-colors"
               >
                 Log in
               </Link>
             </div>
           </div>
-
-          {/* Right margin meta (desktop) */}
-          <div className="hidden md:flex col-span-4 flex-col items-end justify-end h-full pb-4">
-            <div className="text-right max-w-[14rem]">
-              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#F4F1EA] mb-2 mix-blend-difference">
-                Volume One
-              </p>
-              <p className="font-display italic text-[#F4F1EA] text-xl leading-snug mix-blend-difference">
-                “The whole of campus, gathered into a single page.”
-              </p>
-            </div>
-          </div>
         </div>
 
-        {/* Footer rule */}
-        <div className="absolute bottom-0 inset-x-0 z-10 border-t border-[#0F0F10]/15">
-          <div className="max-w-7xl mx-auto px-6 md:px-12 py-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-[#0F0F10]/60">
-            <span>Tutors · Notes · Community</span>
+        {/* Bottom rail */}
+        <div className="absolute bottom-0 inset-x-0 z-10 border-t border-[#F4F1EA]/15">
+          <div className="max-w-7xl mx-auto px-6 md:px-12 py-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-[#F4F1EA]/60">
+            <span>Marketplace · Tutors · Clubs · Quizzes</span>
             <span className="hidden md:inline">Scroll —</span>
             <span>{new Date().getFullYear()}</span>
           </div>
         </div>
       </section>
+
+      {/* Pillars section */}
+      <section className="bg-[#0F0F10] text-[#F4F1EA] py-24 md:py-32">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <div className="text-center mb-20">
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[#C4553F] mb-4">
+              Our Pillars
+            </p>
+            <h2 className="font-serif text-3xl md:text-5xl leading-tight">
+              Everything students need,<br />
+              <span className="italic font-light">purposefully gathered.</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {pillars.map((pillar, idx) => (
+              <div key={idx} className="group border-t border-[#F4F1EA]/20 pt-6">
+                <pillar.icon className="w-6 h-6 text-[#C4553F] mb-4" />
+                <h3 className="font-serif text-xl mb-2">{pillar.label}</h3>
+                <p className="text-[#F4F1EA]/70 text-sm leading-relaxed">
+                  {pillar.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-[#0F0F10] border-t border-[#F4F1EA]/10 py-8">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center text-[#F4F1EA]/40 text-xs">
+          <span>© {new Date().getFullYear()} CampusConnect. All rights reserved.</span>
+          <span className="mt-2 md:mt-0">Built with purpose. For students, by students.</span>
+        </div>
+      </footer>
     </div>
   );
 }
