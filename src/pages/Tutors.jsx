@@ -1,20 +1,30 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
-import { Search, Plus, Edit3, Star, MessageCircle, Trash2 } from "lucide-react";
+import { Search, Plus, Edit3, Star, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
-import { toast } from "sonner";
 
 export default function Tutors() {
   const { user } = useAuth();
   const [tutors, setTutors] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hasOwnAds, setHasOwnAds] = useState(false);
 
+  // Fetch tutor list (runs on mount and when search changes)
   useEffect(() => {
     fetchTutors();
   }, []);
+
+  // Check if current user already has tutor ads – re‑runs whenever `user` becomes available
+  useEffect(() => {
+    if (user) {
+      checkOwnAds();
+    } else {
+      setHasOwnAds(false);
+    }
+  }, [user]);
 
   const fetchTutors = async (code = "") => {
     setLoading(true);
@@ -29,20 +39,18 @@ export default function Tutors() {
     }
   };
 
+  const checkOwnAds = async () => {
+    try {
+      const res = await api.get("/tutors/myads/count");
+      setHasOwnAds(res.data.count > 0);
+    } catch (err) {
+      setHasOwnAds(false);
+    }
+  };
+
   const handleSearch = (e) => {
     setSearch(e.target.value);
     fetchTutors(e.target.value);
-  };
-
-  const handleDelete = async (tutorId) => {
-    if (!window.confirm("Delete this ad?")) return;
-    try {
-      await api.delete(`/tutors/${tutorId}`);
-      setTutors(prev => prev.filter(t => t.tutor_id !== tutorId));
-      toast.success("Ad deleted");
-    } catch (err) {
-      toast.error("Failed to delete");
-    }
   };
 
   return (
@@ -52,7 +60,7 @@ export default function Tutors() {
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="font-display text-3xl font-semibold">Find a Tutor</h1>
           <div className="flex gap-2">
-            {user && (
+            {hasOwnAds && (
               <Link
                 to="/tutors/myads"
                 className="neo-btn neo-btn-secondary !px-4 !py-2"
@@ -98,7 +106,6 @@ export default function Tutors() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {tutors.map((t) => {
-            const isOwner = user?.user_id === t.user_id;
             const avgRating = t.average_rating || 0;
             const ratingCount = t.rating_count || 0;
 
@@ -117,18 +124,24 @@ export default function Tutors() {
                 </div>
 
                 <div className="p-4">
-                  {/* Title row with average rating on the right */}
+                  {/* Title + average rating */}
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-lg leading-tight">{t.title}</h3>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
-                      {[1,2,3,4,5].map(star => (
+                      {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`w-4 h-4 ${star <= avgRating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                          className={`w-4 h-4 ${
+                            star <= avgRating
+                              ? "text-yellow-500 fill-yellow-500"
+                              : "text-gray-300"
+                          }`}
                         />
                       ))}
                       {ratingCount > 0 && (
-                        <span className="text-xs text-[#6B6B70] ml-1">({avgRating})</span>
+                        <span className="text-xs text-[#6B6B70] ml-1">
+                          ({avgRating})
+                        </span>
                       )}
                     </div>
                   </div>
@@ -138,35 +151,19 @@ export default function Tutors() {
                     {t.course_name} – {t.course_code}
                   </p>
 
-                  {/* Price + Chat row */}
+                  {/* Price + Chat link */}
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="chip chip-accent text-xs font-medium">{t.price_range}</span>
+                    <span className="chip chip-accent text-xs font-medium">
+                      {t.price_range}
+                    </span>
                     <Link
                       to={`/tutors/${t.tutor_id}/reviews`}
                       className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800"
                     >
                       <MessageCircle className="w-4 h-4" />
-                      Chat
+                      reviews
                     </Link>
                   </div>
-
-                  {/* Owner actions (Edit / Delete) */}
-                  {isOwner && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-[#E7E5E0]">
-                      <Link
-                        to={`/tutors/edit/${t.tutor_id}`}
-                        className="neo-btn neo-btn-secondary !py-1.5 !px-3 text-xs"
-                      >
-                        <Edit3 className="w-4 h-4 mr-1" /> Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(t.tutor_id)}
-                        className="neo-btn !py-1.5 !px-3 text-xs bg-red-500 border-red-500 text-white"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" /> Delete
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             );
