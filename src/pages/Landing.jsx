@@ -188,8 +188,7 @@ export default function Landing() {
               Connect<span className="text-[#C4553F]">.</span>
             </h1>
             <p className="mt-8 max-w-md text-[#0F0F10]/70 text-base md:text-lg leading-relaxed">
-              Find tutors, swap notes, and meet the people who make your campus
-              feel like home — all in one quiet, considered place.
+           
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-3 max-w-lg">
