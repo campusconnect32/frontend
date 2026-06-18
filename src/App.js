@@ -27,6 +27,7 @@ const MyMarketListings = React.lazy(() => import("@/pages/MyMarketListings"));
 const MyMarketCustomers = React.lazy(() => import("@/pages/MyMarketCustomers"));
 const CustomerDetail = React.lazy(() => import("@/pages/CustomerDetail"));
 const MarketChat = React.lazy(() => import("@/pages/MarketChat"));
+const Quiz = React.lazy(() => import("@/pages/Quiz"));
 const Clubs = React.lazy(() => import("@/pages/Clubs"));
 const ClubCreate = React.lazy(() => import("@/pages/ClubCreate"));
 const ClubDetail = React.lazy(() => import("@/pages/ClubDetail"));
@@ -88,6 +89,8 @@ function AppRouter() {
 
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+	{/* Quizzes */}
+	<Route path="/quiz" element={<Quiz />} />
       </Routes>
     </Suspense>
   );

@@ -26,7 +26,8 @@ export default function Navbar() {
           <Link to="/tutors" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Tutors</Link>
           <Link to="/clubs" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Clubs</Link>
           <Link to="/profile" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Profile</Link>
-        </div>
+	  <Link to="/quiz" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Quizzes</Link>        
+	</div>
 
         <div className="flex items-center gap-2">
           <button onClick={onLogout} className="hidden md:flex p-2 rounded-md hover:bg-[#F5F3EE] text-[#6B6B70]">
@@ -52,6 +53,9 @@ export default function Navbar() {
                 </SheetClose>
                 <SheetClose asChild>
                   <Link to="/clubs" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Clubs</Link>
+                </SheetClose>
+		<SheetClose asChild>
+  		  <Link to="/quiz" className="px-3 py-3 rounded-lg text-[#262626] hover:bg-[#F5F3EE] transition-colors">Quizzes</Link>
                 </SheetClose>
                 <SheetClose asChild>
                   <Link to="/profile" className="px-3 py-3 rounded-lg text-[15px] font-medium hover:bg-[#F5F3EE]">Profile</Link>
