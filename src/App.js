@@ -27,11 +27,17 @@ const MyMarketListings = React.lazy(() => import("@/pages/MyMarketListings"));
 const MyMarketCustomers = React.lazy(() => import("@/pages/MyMarketCustomers"));
 const CustomerDetail = React.lazy(() => import("@/pages/CustomerDetail"));
 const MarketChat = React.lazy(() => import("@/pages/MarketChat"));
-const Quiz = React.lazy(() => import("@/pages/Quiz"));
 const Clubs = React.lazy(() => import("@/pages/Clubs"));
 const ClubCreate = React.lazy(() => import("@/pages/ClubCreate"));
 const ClubDetail = React.lazy(() => import("@/pages/ClubDetail"));
 const ClubChat = React.lazy(() => import("@/pages/ClubChat"));
+const Quiz = React.lazy(() => import("@/pages/Quiz"));
+const Bursaries = React.lazy(() => import("@/pages/Bursaries"));
+const BursaryCreate = React.lazy(() => import("@/pages/BursaryCreate"));
+const BursaryEdit = React.lazy(() => import("@/pages/BursaryEdit"));
+const MyBursaries = React.lazy(() => import("@/pages/MyBursaries"));
+const Stories = React.lazy(() => import("@/pages/Stories"));
+const FindUsers = React.lazy(() => import("@/pages/FindUsers"));
 
 function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
@@ -64,6 +70,10 @@ function AppRouter() {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/accept-privacy" element={<ProtectedRoute><AcceptPrivacy /></ProtectedRoute>} />
 
+        {/* Stories */}
+        <Route path="/stories" element={<AuthOnlyRoute><Stories /></AuthOnlyRoute>} />
+        <Route path="/stories/find" element={<AuthOnlyRoute><FindUsers /></AuthOnlyRoute>} />
+
         {/* Tutors */}
         <Route path="/tutors" element={<Tutors />} />
         <Route path="/tutors/create" element={<AuthOnlyRoute><TutorCreate /></AuthOnlyRoute>} />
@@ -87,10 +97,17 @@ function AppRouter() {
         <Route path="/clubs/:clubId" element={<AuthOnlyRoute><ClubDetail /></AuthOnlyRoute>} />
         <Route path="/clubs/:clubId/chat" element={<AuthOnlyRoute><ClubChat /></AuthOnlyRoute>} />
 
+        {/* Bursaries */}
+        <Route path="/bursaries" element={<Bursaries />} />
+        <Route path="/bursaries/create" element={<AuthOnlyRoute><BursaryCreate /></AuthOnlyRoute>} />
+        <Route path="/bursaries/my-posts" element={<AuthOnlyRoute><MyBursaries /></AuthOnlyRoute>} />
+        <Route path="/bursaries/edit/:bursaryId" element={<AuthOnlyRoute><BursaryEdit /></AuthOnlyRoute>} />
+
+        {/* Quizzes */}
+        <Route path="/quiz" element={<Quiz />} />
+
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-	{/* Quizzes */}
-	<Route path="/quiz" element={<Quiz />} />
       </Routes>
     </Suspense>
   );

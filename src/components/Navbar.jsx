@@ -4,11 +4,13 @@ import { LogOut, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 const NAV = [
-  { to: "/market", label: "Market" },
-  { to: "/tutors", label: "Tutors" },
-  { to: "/clubs",  label: "Clubs"  },
-  { to: "/quiz",   label: "Quizzes" },   // ← restored
-  { to: "/profile", label: "Profile" },
+  { to: "/stories",  label: "Stories" },
+  { to: "/market",   label: "Market" },
+  { to: "/tutors",   label: "Tutors" },
+  { to: "/clubs",    label: "Clubs"  },
+  { to: "/bursaries",label: "Bursaries" },
+  { to: "/quiz",     label: "Quizzes" },
+  { to: "/profile",  label: "Profile" },
 ];
 
 export default function Navbar() {
