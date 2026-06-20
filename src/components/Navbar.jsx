@@ -10,7 +10,9 @@ const NAV = [
   { to: "/clubs",    label: "Clubs"  },
   { to: "/bursaries",label: "Bursaries" },
   { to: "/quiz",     label: "Quizzes" },
-  { to: "/profile",  label: "Profile" },
+  { to: "/lost-found", label: "Lost & Found" },
+  { to: "/directions", label: "Directions" },  
+{ to: "/profile",  label: "Profile" },
 ];
 
 export default function Navbar() {
@@ -35,6 +37,9 @@ export default function Navbar() {
             <div className="text-[10px] uppercase tracking-[0.18em] text-[#8A8578] mt-0.5">Est. for students</div>
           </div>
         </Link>
+
+	<Link to="/lost-found" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Lost & Found</Link>
+	<Link to="/directions" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Directions</Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1">
