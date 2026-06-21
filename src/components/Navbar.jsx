@@ -38,9 +38,6 @@ export default function Navbar() {
           </div>
         </Link>
 
-	<Link to="/lost-found" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Lost & Found</Link>
-	<Link to="/directions" className="text-sm font-medium text-[#262626] hover:text-[#0F0F10] px-2 py-1.5">Directions</Link>
-
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1">
           {NAV.map((n) => {
