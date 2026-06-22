@@ -40,6 +40,8 @@ const Stories = React.lazy(() => import("@/pages/Stories"));
 const FindUsers = React.lazy(() => import("@/pages/FindUsers"));
 const LostFound = React.lazy(() => import("@/pages/LostFound"));
 const Directions = React.lazy(() => import("@/pages/Directions"));
+const Events = React.lazy(() => import("@/pages/Events"));
+const Announcements = React.lazy(() => import("@/pages/Announcements"));
 
 function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
@@ -50,8 +52,19 @@ function AuthOnlyRoute({ children }) {
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = window.location.pathname;
+  
+  // List of public routes that should NOT redirect to profile setup
+  const publicRoutes = ['/announcements', '/events', '/quiz', '/lost-found', '/directions'];
+  
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-sm text-[#6B6B70]">Loading…</div></div>;
   if (!user) return <Navigate to="/" replace />;
+  
+  // Skip profile redirect for public routes
+  if (publicRoutes.includes(location)) {
+    return children;
+  }
+  
   if (user.onboarding_complete === false) return <Navigate to="/profile/setup" replace />;
   return children;
 }
@@ -112,6 +125,9 @@ function AppRouter() {
 	<Route path="/directions" element={<Directions />} />
         {/* Quizzes */}
         <Route path="/quiz" element={<Quiz />} />
+	
+	<Route path="/events" element={<Events />} />
+	<Route path="/announcements" element={<Announcements />} />
 
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
