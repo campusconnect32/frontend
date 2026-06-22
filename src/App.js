@@ -36,6 +36,7 @@ const Bursaries = React.lazy(() => import("@/pages/Bursaries"));
 const BursaryCreate = React.lazy(() => import("@/pages/BursaryCreate"));
 const BursaryEdit = React.lazy(() => import("@/pages/BursaryEdit"));
 const MyBursaries = React.lazy(() => import("@/pages/MyBursaries"));
+const BursaryChat = React.lazy(() => import("@/pages/BursaryChat"));   // <-- NEW
 const Stories = React.lazy(() => import("@/pages/Stories"));
 const FindUsers = React.lazy(() => import("@/pages/FindUsers"));
 const LostFound = React.lazy(() => import("@/pages/LostFound"));
@@ -117,17 +118,20 @@ function AppRouter() {
         <Route path="/bursaries/create" element={<AuthOnlyRoute><BursaryCreate /></AuthOnlyRoute>} />
         <Route path="/bursaries/my-posts" element={<AuthOnlyRoute><MyBursaries /></AuthOnlyRoute>} />
         <Route path="/bursaries/edit/:bursaryId" element={<AuthOnlyRoute><BursaryEdit /></AuthOnlyRoute>} />
+        <Route path="/bursaries/chat/:bursaryId" element={<AuthOnlyRoute><BursaryChat /></AuthOnlyRoute>} />   {/* <-- NEW */}
 
-	{/* Lost and found */}
-	<Route path="/lost-found" element={<LostFound />} />
+        {/* Lost and found */}
+        <Route path="/lost-found" element={<LostFound />} />
 
-	{/* Directions */}
-	<Route path="/directions" element={<Directions />} />
+        {/* Directions */}
+        <Route path="/directions" element={<Directions />} />
+
         {/* Quizzes */}
         <Route path="/quiz" element={<Quiz />} />
-	
-	<Route path="/events" element={<Events />} />
-	<Route path="/announcements" element={<Announcements />} />
+
+        {/* Events & Announcements */}
+        <Route path="/events" element={<Events />} />
+        <Route path="/announcements" element={<Announcements />} />
 
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
