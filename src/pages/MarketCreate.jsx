@@ -11,19 +11,21 @@ export default function MarketCreate() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
-  const [image, setImage] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [images, setImages] = useState([]);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     api.get("/marketplace/categories")
       .then(res => setCategories(res.data || []))
-      .catch(err => console.error("Failed to load categories", err));
+      .catch(console.error);
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !price.trim() || !category) {
+    const finalCategory = category === "__custom__" ? customCategory.trim() : category;
+    if (!title.trim() || !price.trim() || !finalCategory) {
       return toast.error("Title, price, and category are required");
     }
     setSaving(true);
@@ -32,8 +34,8 @@ export default function MarketCreate() {
         title: title.trim(),
         description: description.trim(),
         price: price.trim(),
-        category,
-        image,
+        category: finalCategory,
+        images,
       });
       toast.success("Listing created!");
       navigate("/market");
@@ -52,11 +54,11 @@ export default function MarketCreate() {
         <form onSubmit={handleSubmit} className="bg-white border border-[#E7E5E0] rounded-2xl p-6 space-y-4">
           <div>
             <label className="text-xs font-semibold uppercase">Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="neo-input mt-1" placeholder="e.g. iPhone 12" required />
+            <input value={title} onChange={e => setTitle(e.target.value)} className="neo-input mt-1" required />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase">Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} className="neo-input mt-1 h-20 resize-none" placeholder="Condition, details..." />
+            <label className="text-xs font-semibold uppercase">Description (shown in info dialog)</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} className="neo-input mt-1 h-20 resize-none" />
           </div>
           <div>
             <label className="text-xs font-semibold uppercase">Price</label>
@@ -64,16 +66,37 @@ export default function MarketCreate() {
           </div>
           <div>
             <label className="text-xs font-semibold uppercase">Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} className="neo-input mt-1" required>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="neo-input mt-1"
+              required
+            >
               <option value="">Select category</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
+              <option value="__custom__">➕ Create your own...</option>
             </select>
           </div>
+
+          {/* Custom category input */}
+          {category === "__custom__" && (
+            <div>
+              <label className="text-xs font-semibold uppercase">Your Category Name</label>
+              <input
+                value={customCategory}
+                onChange={e => setCustomCategory(e.target.value)}
+                className="neo-input mt-1"
+                placeholder="e.g. Sneakers"
+                required
+              />
+            </div>
+          )}
+
           <div>
-            <label className="text-xs font-semibold uppercase">Image (optional)</label>
-            <ImageUpload images={image ? [image] : []} onChange={(imgs) => setImage(imgs[0] || "")} maxImages={1} />
+            <label className="text-xs font-semibold uppercase">Images (up to 5)</label>
+            <ImageUpload images={images} onChange={setImages} maxImages={5} />
           </div>
           <button type="submit" disabled={saving} className="neo-btn bg-purple-600 border-purple-600 w-full">
             {saving ? "Creating..." : "Post Listing"}

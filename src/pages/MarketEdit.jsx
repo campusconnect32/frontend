@@ -12,7 +12,7 @@ export default function MarketEdit() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
-  const [image, setImage] = useState("");
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -27,7 +27,7 @@ export default function MarketEdit() {
         setDescription(res.data.description);
         setPrice(res.data.price);
         setCategory(res.data.category);
-        setImage(res.data.image || "");
+        setImages(res.data.images || (res.data.image ? [res.data.image] : []));
       })
       .catch(() => {
         toast.error("Item not found");
@@ -48,7 +48,7 @@ export default function MarketEdit() {
         description: description.trim(),
         price: price.trim(),
         category,
-        image,
+        images,
       });
       toast.success("Listing updated!");
       navigate(`/market/${itemId}`);
@@ -67,30 +67,19 @@ export default function MarketEdit() {
       <div className="max-w-xl mx-auto px-4 py-8">
         <h1 className="font-display text-2xl font-semibold mb-6">Edit Listing</h1>
         <form onSubmit={handleSubmit} className="bg-white border border-[#E7E5E0] rounded-2xl p-6 space-y-4">
-          <div>
-            <label className="text-xs font-semibold uppercase">Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="neo-input mt-1" required />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase">Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} className="neo-input mt-1 h-20 resize-none" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase">Price</label>
-            <input value={price} onChange={e => setPrice(e.target.value)} className="neo-input mt-1" required />
-          </div>
+          <div><label className="text-xs font-semibold uppercase">Title</label><input value={title} onChange={e => setTitle(e.target.value)} className="neo-input mt-1" required /></div>
+          <div><label className="text-xs font-semibold uppercase">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="neo-input mt-1 h-20 resize-none" /></div>
+          <div><label className="text-xs font-semibold uppercase">Price</label><input value={price} onChange={e => setPrice(e.target.value)} className="neo-input mt-1" required /></div>
           <div>
             <label className="text-xs font-semibold uppercase">Category</label>
             <select value={category} onChange={e => setCategory(e.target.value)} className="neo-input mt-1" required>
               <option value="">Select category</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categories.map(cat => (<option key={cat} value={cat}>{cat}</option>))}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase">Image (optional)</label>
-            <ImageUpload images={image ? [image] : []} onChange={(imgs) => setImage(imgs[0] || "")} maxImages={1} />
+            <label className="text-xs font-semibold uppercase">Images (up to 5)</label>
+            <ImageUpload images={images} onChange={setImages} maxImages={5} />
           </div>
           <button type="submit" disabled={saving} className="neo-btn bg-purple-600 border-purple-600 w-full">
             {saving ? "Saving..." : "Update Listing"}
