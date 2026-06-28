@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import "@/App.css";
@@ -36,104 +36,311 @@ const Bursaries = React.lazy(() => import("@/pages/Bursaries"));
 const BursaryCreate = React.lazy(() => import("@/pages/BursaryCreate"));
 const BursaryEdit = React.lazy(() => import("@/pages/BursaryEdit"));
 const MyBursaries = React.lazy(() => import("@/pages/MyBursaries"));
-const BursaryChat = React.lazy(() => import("@/pages/BursaryChat"));   // <-- NEW
+const BursaryChat = React.lazy(() => import("@/pages/BursaryChat"));
 const Stories = React.lazy(() => import("@/pages/Stories"));
 const FindUsers = React.lazy(() => import("@/pages/FindUsers"));
 const LostFound = React.lazy(() => import("@/pages/LostFound"));
 const Directions = React.lazy(() => import("@/pages/Directions"));
 const Events = React.lazy(() => import("@/pages/Events"));
 const Announcements = React.lazy(() => import("@/pages/Announcements"));
+const Home = React.lazy(() => import("@/pages/Home"));
+const UniversitySelect = React.lazy(() => import("@/pages/UniversitySelect"));
+const AdminDashboard = React.lazy(() => import("@/pages/AdminDashboard"));
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-sm text-[#6B6B70]">Loading…</div>
+    </div>
+  );
+}
+
+function SpinnerScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-sm text-[#6B6B70]">Loading…</div></div>;
+
+  if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/" replace />;
+
   return children;
 }
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  const location = window.location.pathname;
-  
-  // List of public routes that should NOT redirect to profile setup
-  const publicRoutes = ['/announcements', '/events', '/quiz', '/lost-found', '/directions'];
-  
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-sm text-[#6B6B70]">Loading…</div></div>;
+  const location = useLocation();
+
+  const publicRoutes = [
+    "/announcements",
+    "/events",
+    "/quiz",
+    "/lost-found",
+    "/directions",
+    "/tutors",
+    "/market",
+    "/bursaries",
+    "/clubs",
+    "/privacy",
+  ];
+
+  if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/" replace />;
-  
-  // Skip profile redirect for public routes
-  if (publicRoutes.includes(location)) {
+
+  if (publicRoutes.includes(location.pathname)) {
     return children;
   }
-  
-  if (user.onboarding_complete === false) return <Navigate to="/profile/setup" replace />;
+
+  if (user.onboarding_complete === false) {
+    return <Navigate to="/profile/setup" replace />;
+  }
+
   return children;
+}
+
+function RootRoute() {
+  // "/" doubles as the university picker: show UniversitySelect until a
+  // university is saved, then Home takes over.
+  //
+  // This needs its own state rather than just reading localStorage inline,
+  // because UniversitySelect calls navigate('/') after picking a university —
+  // but we're already AT "/", so the location never actually changes, and
+  // nothing forces this component to re-render and notice the new
+  // localStorage value. Listening for our own "universitySelected" event
+  // (dispatched right after the localStorage write) gives us a real state
+  // update to react to.
+  const [savedUniversity, setSavedUniversity] = React.useState(
+    () => localStorage.getItem("selectedUniversity")
+  );
+
+  React.useEffect(() => {
+    const handleChange = () => {
+      setSavedUniversity(localStorage.getItem("selectedUniversity"));
+    };
+    window.addEventListener("universitySelected", handleChange);
+    window.addEventListener("storage", handleChange);
+    return () => {
+      window.removeEventListener("universitySelected", handleChange);
+      window.removeEventListener("storage", handleChange);
+    };
+  }, []);
+
+  return savedUniversity ? <Home /> : <UniversitySelect />;
 }
 
 function AppRouter() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<SpinnerScreen />}>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<RootRoute />} />
         <Route path="/app" element={<Navigate to="/profile" replace />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
-        <Route path="/profile/setup" element={<AuthOnlyRoute><ProfileSetup /></AuthOnlyRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/accept-privacy" element={<ProtectedRoute><AcceptPrivacy /></ProtectedRoute>} />
-
-        {/* Stories */}
-        <Route path="/stories" element={<AuthOnlyRoute><Stories /></AuthOnlyRoute>} />
-        <Route path="/stories/find" element={<AuthOnlyRoute><FindUsers /></AuthOnlyRoute>} />
-
-        {/* Tutors */}
-        <Route path="/tutors" element={<Tutors />} />
-        <Route path="/tutors/create" element={<AuthOnlyRoute><TutorCreate /></AuthOnlyRoute>} />
-        <Route path="/tutors/myads" element={<AuthOnlyRoute><MyTutorAds /></AuthOnlyRoute>} />
-        <Route path="/tutors/:tutorId/reviews" element={<TutorReviews />} />
-        <Route path="/tutors/edit/:tutorId" element={<AuthOnlyRoute><TutorEdit /></AuthOnlyRoute>} />
-
-        {/* Market */}
-        <Route path="/market" element={<Market />} />
-        <Route path="/market/create" element={<AuthOnlyRoute><MarketCreate /></AuthOnlyRoute>} />
-        <Route path="/market/mylistings" element={<AuthOnlyRoute><MyMarketListings /></AuthOnlyRoute>} />
-        <Route path="/market/mycustomers" element={<AuthOnlyRoute><MyMarketCustomers /></AuthOnlyRoute>} />
-        <Route path="/market/customer/:customerId" element={<AuthOnlyRoute><CustomerDetail /></AuthOnlyRoute>} />
-        <Route path="/market/chat/:itemId" element={<AuthOnlyRoute><MarketChat /></AuthOnlyRoute>} />
-        <Route path="/market/:itemId" element={<MarketDetail />} />
-        <Route path="/market/edit/:itemId" element={<AuthOnlyRoute><MarketEdit /></AuthOnlyRoute>} />
-
-        {/* Clubs */}
-        <Route path="/clubs" element={<Clubs />} />
-        <Route path="/clubs/create" element={<AuthOnlyRoute><ClubCreate /></AuthOnlyRoute>} />
-        <Route path="/clubs/:clubId" element={<AuthOnlyRoute><ClubDetail /></AuthOnlyRoute>} />
-        <Route path="/clubs/:clubId/chat" element={<AuthOnlyRoute><ClubChat /></AuthOnlyRoute>} />
-
-        {/* Bursaries */}
-        <Route path="/bursaries" element={<Bursaries />} />
-        <Route path="/bursaries/create" element={<AuthOnlyRoute><BursaryCreate /></AuthOnlyRoute>} />
-        <Route path="/bursaries/my-posts" element={<AuthOnlyRoute><MyBursaries /></AuthOnlyRoute>} />
-        <Route path="/bursaries/edit/:bursaryId" element={<AuthOnlyRoute><BursaryEdit /></AuthOnlyRoute>} />
-        <Route path="/bursaries/chat/:bursaryId" element={<AuthOnlyRoute><BursaryChat /></AuthOnlyRoute>} />   {/* <-- NEW */}
-
-        {/* Lost and found */}
-        <Route path="/lost-found" element={<LostFound />} />
-
-        {/* Directions */}
-        <Route path="/directions" element={<Directions />} />
-
-        {/* Quizzes */}
-        <Route path="/quiz" element={<Quiz />} />
-
-        {/* Events & Announcements */}
         <Route path="/events" element={<Events />} />
         <Route path="/announcements" element={<Announcements />} />
+        <Route path="/quiz" element={<Quiz />} />
+        <Route path="/lost-found" element={<LostFound />} />
+        <Route path="/directions" element={<Directions />} />
+        <Route path="/tutors" element={<Tutors />} />
+        <Route path="/market" element={<Market />} />
+        <Route path="/bursaries" element={<Bursaries />} />
+        <Route path="/clubs" element={<Clubs />} />
 
-        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route
+          path="/admin"
+          element={
+            <AuthOnlyRoute>
+              <AdminDashboard />
+            </AuthOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/profile/setup"
+          element={
+            <AuthOnlyRoute>
+              <ProfileSetup />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/accept-privacy"
+          element={
+            <ProtectedRoute>
+              <AcceptPrivacy />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/stories"
+          element={
+            <AuthOnlyRoute>
+              <Stories />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/stories/find"
+          element={
+            <AuthOnlyRoute>
+              <FindUsers />
+            </AuthOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/tutors/create"
+          element={
+            <AuthOnlyRoute>
+              <TutorCreate />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/tutors/myads"
+          element={
+            <AuthOnlyRoute>
+              <MyTutorAds />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route path="/tutors/:tutorId/reviews" element={<TutorReviews />} />
+        <Route
+          path="/tutors/edit/:tutorId"
+          element={
+            <AuthOnlyRoute>
+              <TutorEdit />
+            </AuthOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/market/create"
+          element={
+            <AuthOnlyRoute>
+              <MarketCreate />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/market/mylistings"
+          element={
+            <AuthOnlyRoute>
+              <MyMarketListings />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/market/mycustomers"
+          element={
+            <AuthOnlyRoute>
+              <MyMarketCustomers />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/market/customer/:customerId"
+          element={
+            <AuthOnlyRoute>
+              <CustomerDetail />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/market/chat/:itemId"
+          element={
+            <AuthOnlyRoute>
+              <MarketChat />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route path="/market/:itemId" element={<MarketDetail />} />
+        <Route
+          path="/market/edit/:itemId"
+          element={
+            <AuthOnlyRoute>
+              <MarketEdit />
+            </AuthOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/clubs/create"
+          element={
+            <AuthOnlyRoute>
+              <ClubCreate />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/clubs/:clubId"
+          element={
+            <AuthOnlyRoute>
+              <ClubDetail />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/clubs/:clubId/chat"
+          element={
+            <AuthOnlyRoute>
+              <ClubChat />
+            </AuthOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/bursaries/create"
+          element={
+            <AuthOnlyRoute>
+              <BursaryCreate />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/bursaries/my-posts"
+          element={
+            <AuthOnlyRoute>
+              <MyBursaries />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/bursaries/edit/:bursaryId"
+          element={
+            <AuthOnlyRoute>
+              <BursaryEdit />
+            </AuthOnlyRoute>
+          }
+        />
+        <Route
+          path="/bursaries/chat/:bursaryId"
+          element={
+            <AuthOnlyRoute>
+              <BursaryChat />
+            </AuthOnlyRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
@@ -146,7 +353,20 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <AppRouter />
-          <Toaster position="top-right" toastOptions={{ style: { background: "#FFFFFF", border: "1px solid #E7E5E0", boxShadow: "0 4px 12px -4px rgba(15, 15, 16, 0.08), 0 2px 6px -1px rgba(15, 15, 16, 0.04)", borderRadius: "0.5rem", color: "#0F0F10", fontSize: "0.875rem" }}} />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "#FFFFFF",
+                border: "1px solid #E7E5E0",
+                boxShadow:
+                  "0 4px 12px -4px rgba(15, 15, 16, 0.08), 0 2px 6px -1px rgba(15, 15, 16, 0.04)",
+                borderRadius: "0.5rem",
+                color: "#0F0F10",
+                fontSize: "0.875rem",
+              },
+            }}
+          />
         </AuthProvider>
       </BrowserRouter>
     </div>

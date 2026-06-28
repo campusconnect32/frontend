@@ -16,11 +16,7 @@ export default function Landing() {
   const [googleError, setGoogleError] = useState(false);
   const mountedRef = useRef(true);
   const googleInitialized = useRef(false);
-  const initCalled = useRef(false);
-
-  useEffect(() => {
-    if (!loading && user) navigate("/profile", { replace: true });
-  }, [user, loading, navigate]);
+  const initCalled = useRef(false); 
 
   useEffect(() => {
     if (initCalled.current) return;

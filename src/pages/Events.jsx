@@ -1,15 +1,36 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Calendar, Clock, MapPin, Upload, Image, X, Plus } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Events = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadedImages, setUploadedImages] = useState([]);
   const [imageCaption, setImageCaption] = useState('');
   const [imageLocation, setImageLocation] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('role')
+          .eq('email', user.email)
+          .single();
+        if (data?.role === 'admin') {
+          setIsAdmin(true);
+        }
+      }
+    };
+    checkAdminRole();
+  }, [user]);
 
   const events = [
     {
@@ -145,12 +166,14 @@ const Events = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="bg-[#1a237e] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#0d1550] transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
-          >
-            <Upload size={20} /> Share Photo
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="bg-[#1a237e] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#0d1550] transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <Upload size={20} /> Share Photo
+            </button>
+          )}
         </div>
 
         {/* Category Filters */}
