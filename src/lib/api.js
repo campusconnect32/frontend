@@ -25,13 +25,9 @@ api.interceptors.response.use(
   }
 );
 
-// ========== Image compression helper (safe for remote URLs) ==========
+// ========== Image helpers ==========
 const compressImage = (base64Str, maxWidth = 800, quality = 0.7) => {
-  // If it's already a remote URL, don't draw it on canvas (prevents tainted canvas error)
-  if (base64Str.startsWith("http")) {
-    return Promise.resolve(base64Str);
-  }
-  // Process only data‑URLs (newly selected local images)
+  if (base64Str.startsWith("http")) return Promise.resolve(base64Str);
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -45,10 +41,8 @@ const compressImage = (base64Str, maxWidth = 800, quality = 0.7) => {
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
-      // Convert to WebP if supported, else fallback to JPEG
       try {
-        const webp = canvas.toDataURL("image/webp", quality);
-        resolve(webp);
+        resolve(canvas.toDataURL("image/webp", quality));
       } catch (e) {
         resolve(canvas.toDataURL("image/jpeg", quality));
       }
@@ -58,15 +52,16 @@ const compressImage = (base64Str, maxWidth = 800, quality = 0.7) => {
   });
 };
 
-// Compress all images in an array (used by profile/gallery)
 const compressImageArray = async (images) => {
   if (!images || !images.length) return [];
   return Promise.all(images.map(img => compressImage(img)));
 };
 
 // ========== Auth ==========
-export async function googleAuth(id_token, email, name, picture, ref = null) {
-  const { data } = await api.post("/auth/google", { id_token, email, name, picture, ref: ref || null });
+export async function googleAuth(id_token, email, name, picture, ref = null, university_id = null) {
+  const { data } = await api.post("/auth/google", {
+    id_token, email, name, picture, ref: ref || null, university_id
+  });
   if (data?.token) localStorage.setItem("token", data.token);
   return data;
 }
@@ -81,8 +76,8 @@ export async function logout() {
   finally { localStorage.removeItem("token"); }
 }
 
-export async function signupEmail(email, password, name) {
-  const { data } = await api.post("/auth/signup", { email, password, name });
+export async function signupEmail(email, password, name, university_id = null) {
+  const { data } = await api.post("/auth/signup", { email, password, name, university_id });
   return data;
 }
 
@@ -104,6 +99,12 @@ export async function forgotPassword(email) {
 
 export async function resetPassword(token, password) {
   const { data } = await api.post("/auth/reset-password", { token, password });
+  return data;
+}
+
+// ========== University ==========
+export async function setUniversity(universityId) {
+  const { data } = await api.post("/university/set", { university_id: universityId });
   return data;
 }
 

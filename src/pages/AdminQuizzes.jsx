@@ -1,51 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, X, Eye, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
 
 const AdminQuizzes = () => {
   const { user } = useAuth();
   const [pendingQuizzes, setPendingQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingRole, setCheckingRole] = useState(true);
   const [expandedQuiz, setExpandedQuiz] = useState(null);
 
+  // Check admin status from auth context (already fetched by the app)
+  const isAdmin = user?.is_admin === true;
+
   useEffect(() => {
-    if (user) {
-      checkAdminRole();
+    if (isAdmin) {
+      loadPendingQuizzes();
     } else {
-      setCheckingRole(false);
-      setIsAdmin(false);
+      setLoading(false);
     }
-  }, [user]);
-
-  const checkAdminRole = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('email', user.email)
-        .single();
-
-      if (error) throw error;
-
-      if (data?.role === 'admin') {
-        setIsAdmin(true);
-        loadPendingQuizzes();
-      } else {
-        setIsAdmin(false);
-      }
-    } catch (error) {
-      console.error('Error checking admin role:', error);
-      setIsAdmin(false);
-    } finally {
-      setCheckingRole(false);
-    }
-  };
+  }, [isAdmin]);
 
   const loadPendingQuizzes = () => {
     const pending = JSON.parse(localStorage.getItem('adminPendingQuizzes') || '[]');
@@ -72,6 +47,7 @@ const AdminQuizzes = () => {
       const updatedPending = pending.filter(q => q.id !== id);
       localStorage.setItem('adminPendingQuizzes', JSON.stringify(updatedPending));
       
+      // Also update the general pending list (used by SubmitQuiz for display)
       const mainPending = JSON.parse(localStorage.getItem('pendingQuizzes') || '[]');
       const updatedMainPending = mainPending.filter(q => q.id !== id);
       localStorage.setItem('pendingQuizzes', JSON.stringify(updatedMainPending));
@@ -96,13 +72,13 @@ const AdminQuizzes = () => {
     toast.success('Quiz rejected');
   };
 
-  if (checkingRole) {
+  if (loading && !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-16 text-center">
           <div className="w-8 h-8 border-2 border-[#1a237e] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-gray-500 mt-2">Checking permissions...</p>
+          <p className="text-gray-500 mt-2">Loading...</p>
         </div>
       </div>
     );

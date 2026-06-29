@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, LogOut, Menu } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const user = null; // Replace with actual auth later
+  const { user, logout } = useAuth();
   const [university, setUniversity] = useState(null);
 
   useEffect(() => {
@@ -19,15 +20,11 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
+    logout();
     navigate('/');
   };
 
   const handleChangeUniversity = () => {
-    // Clearing the saved university and dispatching this event tells
-    // RootRoute (in App.js) to re-check localStorage and fall back to the
-    // picker. navigate('/') alone wouldn't be enough since we're already
-    // on "/" — the location doesn't change, so nothing would otherwise
-    // tell RootRoute to re-render.
     localStorage.removeItem('selectedUniversity');
     window.dispatchEvent(new Event('universitySelected'));
     navigate('/');

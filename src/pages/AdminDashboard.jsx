@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Users, FileText, Calendar, Bell, Home } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -12,191 +13,92 @@ const AdminDashboard = () => {
   const [pendingBursaries, setPendingBursaries] = useState([]);
   const [activeTab, setActiveTab] = useState('tutors');
   const [stats, setStats] = useState({
-    totalTutors: 0,
-    pendingTutors: 0,
-    approvedTutors: 0,
-    totalBursaries: 0,
-    pendingBursaries: 0,
-    approvedBursaries: 0,
-    totalAnnouncements: 0,
-    totalEvents: 0
+    total_tutors: 0,
+    pending_tutors: 0,
+    approved_tutors: 0,
+    total_bursaries: 0,
+    pending_bursaries: 0,
+    approved_bursaries: 0,
+    total_announcements: 0,
+    total_events: 0,
   });
 
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingRole, setCheckingRole] = useState(true);
-
-  // Check if user is admin
+  // Fetch everything if user is admin
   useEffect(() => {
-    if (user) {
-      checkAdminRole();
+    if (user?.is_admin) {
+      fetchData();
+    } else {
+      setLoading(false);
     }
   }, [user]);
-
-  const checkAdminRole = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('email', user.email)
-        .single();
-
-      if (error) throw error;
-
-      if (data?.role === 'admin') {
-        setIsAdmin(true);
-        fetchData();
-      } else {
-        setIsAdmin(false);
-        setCheckingRole(false);
-      }
-    } catch (error) {
-      console.error('Error checking admin role:', error);
-      setIsAdmin(false);
-      setCheckingRole(false);
-    }
-  };
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch pending tutors
-      const { data: tutors, error: tutorsError } = await supabase
-        .from('tutors')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      if (tutorsError) throw tutorsError;
-      setPendingTutors(tutors || []);
-
-      // Fetch pending bursaries
-      const { data: bursaries, error: bursariesError } = await supabase
-        .from('bursaries')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      if (bursariesError) throw bursariesError;
-      setPendingBursaries(bursaries || []);
-
       // Fetch stats
-      const { count: totalTutors } = await supabase
-        .from('tutors')
-        .select('*', { count: 'exact', head: true });
+      const statsRes = await api.get('/admin/stats');
+      setStats(statsRes.data);
 
-      const { count: pendingTutorsCount } = await supabase
-        .from('tutors')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      const { count: approvedTutorsCount } = await supabase
-        .from('tutors')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'approved');
-
-      const { count: totalBursaries } = await supabase
-        .from('bursaries')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: pendingBursariesCount } = await supabase
-        .from('bursaries')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      const { count: approvedBursariesCount } = await supabase
-        .from('bursaries')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'approved');
-
-      const { count: totalAnnouncements } = await supabase
-        .from('announcements')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: totalEvents } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true });
-
-      setStats({
-        totalTutors: totalTutors || 0,
-        pendingTutors: pendingTutorsCount || 0,
-        approvedTutors: approvedTutorsCount || 0,
-        totalBursaries: totalBursaries || 0,
-        pendingBursaries: pendingBursariesCount || 0,
-        approvedBursaries: approvedBursariesCount || 0,
-        totalAnnouncements: totalAnnouncements || 0,
-        totalEvents: totalEvents || 0
-      });
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      // Fetch pending tutors and bursaries – we can reuse list endpoints with status filter or add dedicated endpoints.
+      // For simplicity, we fetch all and filter client-side (or you can add ?status=pending to your backend list endpoints).
+      const [tutorsRes, bursariesRes] = await Promise.all([
+        api.get('/tutors'),   // you may want to add ?status=pending to this endpoint in the future
+        api.get('/bursaries'),
+      ]);
+      
+      setPendingTutors((tutorsRes.data || []).filter(t => t.status === 'pending'));
+      setPendingBursaries((bursariesRes.data || []).filter(b => b.status === 'pending'));
+    } catch (err) {
+      console.error('Error fetching admin data', err);
+      toast.error('Could not load admin data');
     } finally {
       setLoading(false);
     }
   };
 
   const handleApprove = async (type, id) => {
-    const table = type === 'tutor' ? 'tutors' : 'bursaries';
     try {
-      const { error } = await supabase
-        .from(table)
-        .update({ status: 'approved' })
-        .eq('id', id);
-
-      if (error) throw error;
-
       if (type === 'tutor') {
-        setPendingTutors(pendingTutors.filter(t => t.id !== id));
-        setStats(prev => ({
-          ...prev,
-          pendingTutors: prev.pendingTutors - 1,
-          approvedTutors: prev.approvedTutors + 1
-        }));
+        await api.put(`/admin/tutors/${id}/approve`);
       } else {
-        setPendingBursaries(pendingBursaries.filter(b => b.id !== id));
-        setStats(prev => ({
-          ...prev,
-          pendingBursaries: prev.pendingBursaries - 1,
-          approvedBursaries: prev.approvedBursaries + 1
-        }));
+        await api.put(`/admin/bursaries/${id}/approve`);
       }
-    } catch (error) {
-      console.error('Error approving:', error);
-      alert('Failed to approve. Please try again.');
+      // Remove from pending list and update stats
+      if (type === 'tutor') {
+        setPendingTutors(prev => prev.filter(t => t.tutor_id !== id));
+        setStats(prev => ({ ...prev, pending_tutors: prev.pending_tutors - 1, approved_tutors: prev.approved_tutors + 1 }));
+      } else {
+        setPendingBursaries(prev => prev.filter(b => b.bursary_id !== id));
+        setStats(prev => ({ ...prev, pending_bursaries: prev.pending_bursaries - 1, approved_bursaries: prev.approved_bursaries + 1 }));
+      }
+      toast.success('Approved');
+    } catch (err) {
+      toast.error('Failed to approve');
     }
   };
 
   const handleReject = async (type, id) => {
-    const table = type === 'tutor' ? 'tutors' : 'bursaries';
-    const reason = prompt('Reason for rejection (optional):');
     try {
-      const { error } = await supabase
-        .from(table)
-        .update({ status: 'rejected', rejection_reason: reason || null })
-        .eq('id', id);
-
-      if (error) throw error;
-
       if (type === 'tutor') {
-        setPendingTutors(pendingTutors.filter(t => t.id !== id));
-        setStats(prev => ({
-          ...prev,
-          pendingTutors: prev.pendingTutors - 1
-        }));
+        await api.put(`/admin/tutors/${id}/reject`);
       } else {
-        setPendingBursaries(pendingBursaries.filter(b => b.id !== id));
-        setStats(prev => ({
-          ...prev,
-          pendingBursaries: prev.pendingBursaries - 1
-        }));
+        await api.put(`/admin/bursaries/${id}/reject`);
       }
-    } catch (error) {
-      console.error('Error rejecting:', error);
-      alert('Failed to reject. Please try again.');
+      if (type === 'tutor') {
+        setPendingTutors(prev => prev.filter(t => t.tutor_id !== id));
+        setStats(prev => ({ ...prev, pending_tutors: prev.pending_tutors - 1 }));
+      } else {
+        setPendingBursaries(prev => prev.filter(b => b.bursary_id !== id));
+        setStats(prev => ({ ...prev, pending_bursaries: prev.pending_bursaries - 1 }));
+      }
+      toast.success('Rejected');
+    } catch (err) {
+      toast.error('Failed to reject');
     }
   };
 
-  // Not admin - Funny error message
-  if (!checkingRole && !isAdmin) {
+  // Not admin – show error
+  if (!user?.is_admin) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -218,7 +120,7 @@ const AdminDashboard = () => {
     );
   }
 
-  if (checkingRole || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -245,15 +147,15 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Tutors</p>
-                <p className="text-2xl font-bold text-[#1a237e]">{stats.totalTutors}</p>
+                <p className="text-2xl font-bold text-[#1a237e]">{stats.total_tutors}</p>
               </div>
               <div className="bg-blue-100 rounded-lg p-2">
                 <Users className="w-5 h-5 text-blue-600" />
               </div>
             </div>
             <div className="flex gap-4 mt-2 text-xs">
-              <span className="text-yellow-600">⏳ {stats.pendingTutors} pending</span>
-              <span className="text-green-600">✅ {stats.approvedTutors} approved</span>
+              <span className="text-yellow-600">⏳ {stats.pending_tutors} pending</span>
+              <span className="text-green-600">✅ {stats.approved_tutors} approved</span>
             </div>
           </div>
 
@@ -261,15 +163,15 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Bursaries</p>
-                <p className="text-2xl font-bold text-[#1a237e]">{stats.totalBursaries}</p>
+                <p className="text-2xl font-bold text-[#1a237e]">{stats.total_bursaries}</p>
               </div>
               <div className="bg-purple-100 rounded-lg p-2">
                 <FileText className="w-5 h-5 text-purple-600" />
               </div>
             </div>
             <div className="flex gap-4 mt-2 text-xs">
-              <span className="text-yellow-600">⏳ {stats.pendingBursaries} pending</span>
-              <span className="text-green-600">✅ {stats.approvedBursaries} approved</span>
+              <span className="text-yellow-600">⏳ {stats.pending_bursaries} pending</span>
+              <span className="text-green-600">✅ {stats.approved_bursaries} approved</span>
             </div>
           </div>
 
@@ -277,7 +179,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Announcements</p>
-                <p className="text-2xl font-bold text-[#1a237e]">{stats.totalAnnouncements}</p>
+                <p className="text-2xl font-bold text-[#1a237e]">{stats.total_announcements}</p>
               </div>
               <div className="bg-orange-100 rounded-lg p-2">
                 <Bell className="w-5 h-5 text-orange-600" />
@@ -289,7 +191,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Events</p>
-                <p className="text-2xl font-bold text-[#1a237e]">{stats.totalEvents}</p>
+                <p className="text-2xl font-bold text-[#1a237e]">{stats.total_events}</p>
               </div>
               <div className="bg-green-100 rounded-lg p-2">
                 <Calendar className="w-5 h-5 text-green-600" />
@@ -303,9 +205,7 @@ const AdminDashboard = () => {
           <button
             onClick={() => setActiveTab('tutors')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'tutors'
-                ? 'bg-[#1a237e] text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+              activeTab === 'tutors' ? 'bg-[#1a237e] text-white' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             Pending Tutors
@@ -318,9 +218,7 @@ const AdminDashboard = () => {
           <button
             onClick={() => setActiveTab('bursaries')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'bursaries'
-                ? 'bg-[#1a237e] text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+              activeTab === 'bursaries' ? 'bg-[#1a237e] text-white' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             Pending Bursaries
@@ -343,25 +241,22 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {pendingTutors.map((tutor) => (
-                  <div key={tutor.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                  <div key={tutor.tutor_id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-[#1a237e]">{tutor.title || tutor.subject}</h3>
-                        <p className="text-sm text-gray-500">{tutor.department || 'N/A'}</p>
-                        <p className="text-sm text-gray-600 mt-1">{tutor.description}</p>
-                        {tutor.email && (
-                          <p className="text-xs text-gray-400 mt-1">📧 {tutor.email}</p>
-                        )}
+                        <h3 className="font-semibold text-[#1a237e]">{tutor.title}</h3>
+                        <p className="text-sm text-gray-500">{tutor.course_name} – {tutor.course_code}</p>
+                        <p className="text-sm text-gray-600 mt-1">{tutor.price_range}</p>
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
                         <button
-                          onClick={() => handleApprove('tutor', tutor.id)}
+                          onClick={() => handleApprove('tutor', tutor.tutor_id)}
                           className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
                         >
                           ✅ Approve
                         </button>
                         <button
-                          onClick={() => handleReject('tutor', tutor.id)}
+                          onClick={() => handleReject('tutor', tutor.tutor_id)}
                           className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
                         >
                           ❌ Reject
@@ -385,28 +280,24 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {pendingBursaries.map((bursary) => (
-                  <div key={bursary.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                  <div key={bursary.bursary_id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-[#1a237e]">{bursary.title || bursary.name}</h3>
-                        <p className="text-sm text-gray-500">{bursary.provider || 'N/A'}</p>
-                        {bursary.amount && (
-                          <p className="text-sm font-medium text-green-600">💰 {bursary.amount}</p>
-                        )}
+                        <h3 className="font-semibold text-[#1a237e]">{bursary.title}</h3>
                         <p className="text-sm text-gray-600 mt-1">{bursary.description}</p>
-                        {bursary.email && (
-                          <p className="text-xs text-gray-400 mt-1">📧 {bursary.email}</p>
+                        {bursary.link && (
+                          <a href={bursary.link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">View link</a>
                         )}
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
                         <button
-                          onClick={() => handleApprove('bursary', bursary.id)}
+                          onClick={() => handleApprove('bursary', bursary.bursary_id)}
                           className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
                         >
                           ✅ Approve
                         </button>
                         <button
-                          onClick={() => handleReject('bursary', bursary.id)}
+                          onClick={() => handleReject('bursary', bursary.bursary_id)}
                           className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
                         >
                           ❌ Reject

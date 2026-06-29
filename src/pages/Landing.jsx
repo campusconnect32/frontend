@@ -1,105 +1,14 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { googleAuth } from "@/lib/api";
-import { Loader2, Mail, AlertTriangle, ArrowRight, BookOpen, Users, ShoppingBag, ClipboardList } from "lucide-react";
-import { toast } from "sonner";
+import { Mail, ArrowRight, BookOpen, Users, ShoppingBag, ClipboardList } from "lucide-react";
 
 const HERO_IMAGE =
   "https://tse1.mm.bing.net/th/id/OIP.BWJp6VdQ5dXnGZn9-A6ctAHaH0?rs=1&pid=ImgDetMain&o=7&rm=3";
 
 export default function Landing() {
-  const { user, loading, refresh } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [googleAvailable, setGoogleAvailable] = useState(false);
-  const [googleError, setGoogleError] = useState(false);
-  const mountedRef = useRef(true);
-  const googleInitialized = useRef(false);
-  const initCalled = useRef(false); 
-
-  useEffect(() => {
-    if (initCalled.current) return;
-    initCalled.current = true;
-    mountedRef.current = true;
-    loadGoogleScript();
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const loadGoogleScript = () => {
-    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      console.warn("Google Client ID not configured");
-      setGoogleError(true);
-      return;
-    }
-    if (window.google?.accounts?.id) {
-      initGoogle(clientId);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => initGoogle(clientId);
-    script.onerror = () => {
-      if (mountedRef.current) {
-        setGoogleError(true);
-        toast.error("Failed to load Google sign‑in. Please try again later.");
-      }
-    };
-    document.head.appendChild(script);
-  };
-
-  const initGoogle = (clientId) => {
-    if (googleInitialized.current) return;
-    googleInitialized.current = true;
-    try {
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        ux_mode: "popup",
-        auto_select: false,
-        cancel_on_tap_outside: true,
-        callback: async (response) => {
-          try {
-            if (!response.credential) throw new Error("No credential received");
-            const payload = JSON.parse(atob(response.credential.split(".")[1]));
-            await googleAuth(
-              response.credential,
-              payload.email,
-              payload.name,
-              payload.picture,
-              localStorage.getItem("stokvel_ref")
-            );
-            if (mountedRef.current) {
-              await refresh();
-              toast.success("Welcome to CampusConnect.");
-            }
-          } catch (error) {
-            console.error("Google login failed:", error);
-            if (mountedRef.current) toast.error("Login failed. Please try again.");
-          } finally {
-            if (mountedRef.current) setIsLoggingIn(false);
-          }
-        },
-      });
-      if (mountedRef.current) {
-        setGoogleAvailable(true);
-        setGoogleError(false);
-      }
-    } catch (err) {
-      console.error("Google initialization error:", err);
-      if (mountedRef.current) setGoogleError(true);
-    }
-  };
-
-  const handleGoogleLogin = useCallback(() => {
-    if (isLoggingIn || !googleAvailable || googleError) return;
-    setIsLoggingIn(true);
-    window.google.accounts.id.prompt();
-  }, [isLoggingIn, googleAvailable, googleError]);
 
   const pillars = [
     { icon: ShoppingBag, label: "Marketplace", desc: "Buy and sell essentials within your campus community." },
@@ -115,7 +24,7 @@ export default function Landing() {
         <Link to="/" className="flex items-baseline gap-2 text-[#F4F1EA] mix-blend-difference">
           <span className="font-serif text-2xl tracking-tight font-semibold">CampusConnect</span>
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-60">
-            EST. ’26
+            EST. '26
           </span>
         </Link>
         <div className="flex items-center gap-5 text-[#F4F1EA] mix-blend-difference">
@@ -135,15 +44,13 @@ export default function Landing() {
               >
                 Sign in
               </Link>
-              <button
-                onClick={handleGoogleLogin}
-                disabled={isLoggingIn || !googleAvailable || googleError}
-                className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] border-b border-current pb-0.5 disabled:opacity-40"
+              <Link
+                to="/signup"
+                className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] border-b border-current pb-0.5"
               >
-                {isLoggingIn ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                {isLoggingIn ? "Signing in" : "Join"}
+                Join
                 <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              </Link>
             </>
           )}
         </div>
@@ -151,7 +58,6 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen w-full flex items-center">
-        {/* Background Image */}
         <div className="absolute inset-0">
           <img
             src={HERO_IMAGE}
@@ -166,7 +72,6 @@ export default function Landing() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F10]/60 via-transparent to-transparent" />
         </div>
 
-        {/* Content */}
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 py-32 md:py-40">
           <div className="max-w-3xl">
             <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-[#F4F1EA]/70 mb-6">
@@ -182,33 +87,13 @@ export default function Landing() {
               Market, Tutoring, Clubs, Quizzes — all in one place, built with purpose.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="mt-12 flex flex-col sm:flex-row gap-4">
-              {googleError ? (
-                <div className="flex items-center gap-3 bg-[#F4F1EA]/10 backdrop-blur-md border border-[#F4F1EA]/20 text-[#F4F1EA] px-6 py-4 rounded-xl text-sm">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0 text-[#C4553F]" />
-                  <span>Google sign‑in is unavailable. Please sign up with email below.</span>
-                </div>
-              ) : (
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={isLoggingIn || !googleAvailable}
-                  className="group relative inline-flex items-center justify-center gap-3 bg-[#F4F1EA] text-[#0F0F10] px-8 h-14 rounded-full text-sm font-medium uppercase tracking-[0.15em] transition-all hover:shadow-[0_12px_40px_-12px_rgba(196,85,63,0.8)] disabled:opacity-50"
-                >
-                  {isLoggingIn ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4" />
-                  )}
-                  {isLoggingIn ? "Signing in..." : "Continue with Google"}
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                </button>
-              )}
+            <div className="mt-12">
               <Link
                 to="/signup"
-                className="inline-flex items-center justify-center gap-3 border border-[#F4F1EA]/40 text-[#F4F1EA] px-8 h-14 rounded-full text-sm font-medium uppercase tracking-[0.15em] hover:bg-[#F4F1EA] hover:text-[#0F0F10] transition-colors backdrop-blur-sm"
+                className="inline-flex items-center justify-center gap-3 bg-[#F4F1EA] text-[#0F0F10] px-8 h-14 rounded-full text-sm font-medium uppercase tracking-[0.15em] transition-all hover:shadow-[0_12px_40px_-12px_rgba(196,85,63,0.8)]"
               >
-                <Mail className="w-4 h-4" /> Sign up with Email
+                <Mail className="w-4 h-4" /> Sign up with your student email
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
@@ -224,7 +109,6 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Bottom rail */}
         <div className="absolute bottom-0 inset-x-0 z-10 border-t border-[#F4F1EA]/15">
           <div className="max-w-7xl mx-auto px-6 md:px-12 py-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-[#F4F1EA]/60">
             <span>Marketplace · Tutors · Clubs · Quizzes</span>

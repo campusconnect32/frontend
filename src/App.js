@@ -92,11 +92,18 @@ function ProtectedRoute({ children }) {
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/" replace />;
 
+  // University must be set for all routes (even public ones)
+  if (!user.university_id) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Public routes are allowed without full profile (but still need university)
   if (publicRoutes.includes(location.pathname)) {
     return children;
   }
 
-  if (user.onboarding_complete === false) {
+  // For non-public routes, onboarding must be complete
+  if (user.onboarding_complete === false && location.pathname !== "/profile/setup") {
     return <Navigate to="/profile/setup" replace />;
   }
 
@@ -104,16 +111,6 @@ function ProtectedRoute({ children }) {
 }
 
 function RootRoute() {
-  // "/" doubles as the university picker: show UniversitySelect until a
-  // university is saved, then Home takes over.
-  //
-  // This needs its own state rather than just reading localStorage inline,
-  // because UniversitySelect calls navigate('/') after picking a university —
-  // but we're already AT "/", so the location never actually changes, and
-  // nothing forces this component to re-render and notice the new
-  // localStorage value. Listening for our own "universitySelected" event
-  // (dispatched right after the localStorage write) gives us a real state
-  // update to react to.
   const [savedUniversity, setSavedUniversity] = React.useState(
     () => localStorage.getItem("selectedUniversity")
   );
@@ -146,6 +143,7 @@ function AppRouter() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
 
+        {/* Public routes (still require university) */}
         <Route path="/events" element={<Events />} />
         <Route path="/announcements" element={<Announcements />} />
         <Route path="/quiz" element={<Quiz />} />
