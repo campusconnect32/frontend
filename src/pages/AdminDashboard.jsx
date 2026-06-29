@@ -23,31 +23,46 @@ const AdminDashboard = () => {
     total_events: 0,
   });
 
-  // Fetch everything if user is admin
+  // University filter
+  const [universities, setUniversities] = useState([]);
+  const [selectedUniversity, setSelectedUniversity] = useState(''); // '' = All
+
   useEffect(() => {
     if (user?.is_admin) {
-      fetchData();
+      loadUniversities();
+      loadAllData();
     } else {
       setLoading(false);
     }
   }, [user]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (user?.is_admin) {
+      loadAllData();
+    }
+  }, [selectedUniversity]);
+
+  const loadUniversities = async () => {
+    try {
+      const res = await api.get('/admin/universities');
+      setUniversities(res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadAllData = async () => {
     setLoading(true);
     try {
-      // Fetch stats
-      const statsRes = await api.get('/admin/stats');
-      setStats(statsRes.data);
-
-      // Fetch pending tutors and bursaries – we can reuse list endpoints with status filter or add dedicated endpoints.
-      // For simplicity, we fetch all and filter client-side (or you can add ?status=pending to your backend list endpoints).
-      const [tutorsRes, bursariesRes] = await Promise.all([
-        api.get('/tutors'),   // you may want to add ?status=pending to this endpoint in the future
-        api.get('/bursaries'),
+      const params = selectedUniversity ? { university_id: selectedUniversity } : {};
+      const [statsRes, tutorsRes, bursariesRes] = await Promise.all([
+        api.get('/admin/stats', { params }),
+        api.get('/admin/pending-tutors', { params }),
+        api.get('/admin/pending-bursaries', { params }),
       ]);
-      
-      setPendingTutors((tutorsRes.data || []).filter(t => t.status === 'pending'));
-      setPendingBursaries((bursariesRes.data || []).filter(b => b.status === 'pending'));
+      setStats(statsRes.data);
+      setPendingTutors(tutorsRes.data || []);
+      setPendingBursaries(bursariesRes.data || []);
     } catch (err) {
       console.error('Error fetching admin data', err);
       toast.error('Could not load admin data');
@@ -63,14 +78,8 @@ const AdminDashboard = () => {
       } else {
         await api.put(`/admin/bursaries/${id}/approve`);
       }
-      // Remove from pending list and update stats
-      if (type === 'tutor') {
-        setPendingTutors(prev => prev.filter(t => t.tutor_id !== id));
-        setStats(prev => ({ ...prev, pending_tutors: prev.pending_tutors - 1, approved_tutors: prev.approved_tutors + 1 }));
-      } else {
-        setPendingBursaries(prev => prev.filter(b => b.bursary_id !== id));
-        setStats(prev => ({ ...prev, pending_bursaries: prev.pending_bursaries - 1, approved_bursaries: prev.approved_bursaries + 1 }));
-      }
+      // Refresh data after action
+      loadAllData();
       toast.success('Approved');
     } catch (err) {
       toast.error('Failed to approve');
@@ -84,20 +93,13 @@ const AdminDashboard = () => {
       } else {
         await api.put(`/admin/bursaries/${id}/reject`);
       }
-      if (type === 'tutor') {
-        setPendingTutors(prev => prev.filter(t => t.tutor_id !== id));
-        setStats(prev => ({ ...prev, pending_tutors: prev.pending_tutors - 1 }));
-      } else {
-        setPendingBursaries(prev => prev.filter(b => b.bursary_id !== id));
-        setStats(prev => ({ ...prev, pending_bursaries: prev.pending_bursaries - 1 }));
-      }
+      loadAllData();
       toast.success('Rejected');
     } catch (err) {
       toast.error('Failed to reject');
     }
   };
 
-  // Not admin – show error
   if (!user?.is_admin) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -120,18 +122,6 @@ const AdminDashboard = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-          <div className="w-8 h-8 border-2 border-[#1a237e] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-gray-500 mt-2">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -139,6 +129,22 @@ const AdminDashboard = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#1a237e]">📊 Admin Dashboard</h1>
           <p className="text-gray-600">Manage and approve posts from students</p>
+        </div>
+
+        {/* University filter */}
+        <div className="mb-6">
+          <select
+            value={selectedUniversity}
+            onChange={(e) => setSelectedUniversity(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg bg-white"
+          >
+            <option value="">All Universities</option>
+            {universities.map((uni) => (
+              <option key={uni.id} value={uni.id}>
+                {uni.name} ({uni.short})
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Stats Grid */}
@@ -230,85 +236,93 @@ const AdminDashboard = () => {
           </button>
         </div>
 
-        {/* Pending Items */}
-        {activeTab === 'tutors' && (
-          <div>
-            {pendingTutors.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                <p className="text-gray-600">All caught up! No pending tutor posts.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingTutors.map((tutor) => (
-                  <div key={tutor.tutor_id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-[#1a237e]">{tutor.title}</h3>
-                        <p className="text-sm text-gray-500">{tutor.course_name} – {tutor.course_code}</p>
-                        <p className="text-sm text-gray-600 mt-1">{tutor.price_range}</p>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0 ml-4">
-                        <button
-                          onClick={() => handleApprove('tutor', tutor.tutor_id)}
-                          className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
-                        >
-                          ✅ Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject('tutor', tutor.tutor_id)}
-                          className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-                        >
-                          ❌ Reject
-                        </button>
-                      </div>
-                    </div>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-[#1a237e] border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-gray-500 mt-2">Loading...</p>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'tutors' && (
+              <div>
+                {pendingTutors.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                    <p className="text-gray-600">No pending tutors for this selection.</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-4">
+                    {pendingTutors.map((tutor) => (
+                      <div key={tutor.tutor_id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-[#1a237e]">{tutor.title}</h3>
+                            <p className="text-sm text-gray-500">{tutor.course_name} – {tutor.course_code}</p>
+                            <p className="text-sm text-gray-600 mt-1">{tutor.price_range}</p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0 ml-4">
+                            <button
+                              onClick={() => handleApprove('tutor', tutor.tutor_id)}
+                              className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
+                            >
+                              ✅ Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject('tutor', tutor.tutor_id)}
+                              className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                            >
+                              ❌ Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {activeTab === 'bursaries' && (
-          <div>
-            {pendingBursaries.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                <p className="text-gray-600">All caught up! No pending bursary posts.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingBursaries.map((bursary) => (
-                  <div key={bursary.bursary_id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-[#1a237e]">{bursary.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{bursary.description}</p>
-                        {bursary.link && (
-                          <a href={bursary.link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">View link</a>
-                        )}
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0 ml-4">
-                        <button
-                          onClick={() => handleApprove('bursary', bursary.bursary_id)}
-                          className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
-                        >
-                          ✅ Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject('bursary', bursary.bursary_id)}
-                          className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-                        >
-                          ❌ Reject
-                        </button>
-                      </div>
-                    </div>
+            {activeTab === 'bursaries' && (
+              <div>
+                {pendingBursaries.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                    <p className="text-gray-600">No pending bursaries for this selection.</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-4">
+                    {pendingBursaries.map((bursary) => (
+                      <div key={bursary.bursary_id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-[#1a237e]">{bursary.title}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{bursary.description}</p>
+                            {bursary.link && (
+                              <a href={bursary.link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">View link</a>
+                            )}
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0 ml-4">
+                            <button
+                              onClick={() => handleApprove('bursary', bursary.bursary_id)}
+                              className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
+                            >
+                              ✅ Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject('bursary', bursary.bursary_id)}
+                              className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                            >
+                              ❌ Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

@@ -46,6 +46,7 @@ const Announcements = React.lazy(() => import("@/pages/Announcements"));
 const Home = React.lazy(() => import("@/pages/Home"));
 const UniversitySelect = React.lazy(() => import("@/pages/UniversitySelect"));
 const AdminDashboard = React.lazy(() => import("@/pages/AdminDashboard"));
+const AdminQuizzes = React.lazy(() => import("@/pages/AdminQuizzes"));   // <-- NEW
 
 function LoadingScreen() {
   return (
@@ -159,6 +160,16 @@ function AppRouter() {
           element={
             <AuthOnlyRoute>
               <AdminDashboard />
+            </AuthOnlyRoute>
+          }
+        />
+
+        {/* NEW: Admin Quizzes */}
+        <Route
+          path="/admin/quizzes"
+          element={
+            <AuthOnlyRoute>
+              <AdminQuizzes />
             </AuthOnlyRoute>
           }
         />

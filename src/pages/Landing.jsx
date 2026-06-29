@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Mail, ArrowRight, BookOpen, Users, ShoppingBag, ClipboardList } from "lucide-react";
 
 const HERO_IMAGE =
-  "https://tse1.mm.bing.net/th/id/OIP.BWJp6VdQ5dXnGZn9-A6ctAHaH0?rs=1&pid=ImgDetMain&o=7&rm=3";
+  "";
 
 export default function Landing() {
   const { user } = useAuth();
