@@ -62,11 +62,9 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      // Pass university.id to signupEmail
       await signupEmail(email, password, name, university.id);
-      await refresh();
-      toast.success('Account created successfully!');
-      navigate('/profile');
+      navigate('/check-email');
+      toast.success('📧 Please check your email to verify your account!');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Signup failed. Please try again.');
     } finally {

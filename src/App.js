@@ -47,6 +47,7 @@ const Home = React.lazy(() => import("@/pages/Home"));
 const UniversitySelect = React.lazy(() => import("@/pages/UniversitySelect"));
 const AdminDashboard = React.lazy(() => import("@/pages/AdminDashboard"));
 const Support = React.lazy(() => import("@/pages/Support"));
+const CheckEmail = React.lazy(() => import("@/pages/CheckEmail"));
 
 function LoadingScreen() {
   return (
@@ -160,7 +161,7 @@ function AppRouter() {
         <Route path="/bursaries/my-posts" element={<AuthOnlyRoute><MyBursaries /></AuthOnlyRoute>} />
         <Route path="/bursaries/edit/:bursaryId" element={<AuthOnlyRoute><BursaryEdit /></AuthOnlyRoute>} />
         <Route path="/bursaries/chat/:bursaryId" element={<AuthOnlyRoute><BursaryChat /></AuthOnlyRoute>} />
-
+	<Route path="/check-email" element={<CheckEmail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
