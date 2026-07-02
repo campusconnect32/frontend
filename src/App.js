@@ -46,7 +46,7 @@ const Announcements = React.lazy(() => import("@/pages/Announcements"));
 const Home = React.lazy(() => import("@/pages/Home"));
 const UniversitySelect = React.lazy(() => import("@/pages/UniversitySelect"));
 const AdminDashboard = React.lazy(() => import("@/pages/AdminDashboard"));
-const AdminQuizzes = React.lazy(() => import("@/pages/AdminQuizzes"));   // <-- NEW
+const Support = React.lazy(() => import("@/pages/Support"));
 
 function LoadingScreen() {
   return (
@@ -68,50 +68,13 @@ function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/" replace />;
-
-  return children;
-}
-
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-
-  const publicRoutes = [
-    "/announcements",
-    "/events",
-    "/quiz",
-    "/lost-found",
-    "/directions",
-    "/tutors",
-    "/market",
-    "/bursaries",
-    "/clubs",
-    "/privacy",
-  ];
-
-  if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/" replace />;
-
-  // University must be set for all routes (even public ones)
-  if (!user.university_id) {
-    return <Navigate to="/" replace />;
-  }
-
-  // Public routes are allowed without full profile (but still need university)
-  if (publicRoutes.includes(location.pathname)) {
-    return children;
-  }
-
-  // For non-public routes, onboarding must be complete
-  if (user.onboarding_complete === false && location.pathname !== "/profile/setup") {
-    return <Navigate to="/profile/setup" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   return children;
 }
 
 function RootRoute() {
+  const { user, loading } = useAuth();
   const [savedUniversity, setSavedUniversity] = React.useState(
     () => localStorage.getItem("selectedUniversity")
   );
@@ -128,7 +91,17 @@ function RootRoute() {
     };
   }, []);
 
-  return savedUniversity ? <Home /> : <UniversitySelect />;
+  // If no university selected, show UniversitySelect
+  if (!savedUniversity) {
+    return <UniversitySelect />;
+  }
+
+  // If university selected but no user, show Login
+  if (!loading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Home />;
 }
 
 function AppRouter() {
@@ -143,212 +116,50 @@ function AppRouter() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/university-select" element={<UniversitySelect />} />
 
-        {/* Public routes (still require university) */}
-        <Route path="/events" element={<Events />} />
-        <Route path="/announcements" element={<Announcements />} />
-        <Route path="/quiz" element={<Quiz />} />
-        <Route path="/lost-found" element={<LostFound />} />
-        <Route path="/directions" element={<Directions />} />
-        <Route path="/tutors" element={<Tutors />} />
-        <Route path="/market" element={<Market />} />
-        <Route path="/bursaries" element={<Bursaries />} />
-        <Route path="/clubs" element={<Clubs />} />
+        {/* PROTECTED ROUTES - require login */}
+        <Route path="/events" element={<AuthOnlyRoute><Events /></AuthOnlyRoute>} />
+        <Route path="/announcements" element={<AuthOnlyRoute><Announcements /></AuthOnlyRoute>} />
+        <Route path="/quiz" element={<AuthOnlyRoute><Quiz /></AuthOnlyRoute>} />
+        <Route path="/lost-found" element={<AuthOnlyRoute><LostFound /></AuthOnlyRoute>} />
+        <Route path="/directions" element={<AuthOnlyRoute><Directions /></AuthOnlyRoute>} />
+        <Route path="/tutors" element={<AuthOnlyRoute><Tutors /></AuthOnlyRoute>} />
+        <Route path="/market" element={<AuthOnlyRoute><Market /></AuthOnlyRoute>} />
+        <Route path="/bursaries" element={<AuthOnlyRoute><Bursaries /></AuthOnlyRoute>} />
+        <Route path="/clubs" element={<AuthOnlyRoute><Clubs /></AuthOnlyRoute>} />
 
-        <Route
-          path="/admin"
-          element={
-            <AuthOnlyRoute>
-              <AdminDashboard />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/admin" element={<AuthOnlyRoute><AdminDashboard /></AuthOnlyRoute>} />
 
-        {/* NEW: Admin Quizzes */}
-        <Route
-          path="/admin/quizzes"
-          element={
-            <AuthOnlyRoute>
-              <AdminQuizzes />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/profile/setup" element={<AuthOnlyRoute><ProfileSetup /></AuthOnlyRoute>} />
+        <Route path="/profile" element={<AuthOnlyRoute><Profile /></AuthOnlyRoute>} />
+        <Route path="/accept-privacy" element={<AuthOnlyRoute><AcceptPrivacy /></AuthOnlyRoute>} />
 
-        <Route
-          path="/profile/setup"
-          element={
-            <AuthOnlyRoute>
-              <ProfileSetup />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/accept-privacy"
-          element={
-            <ProtectedRoute>
-              <AcceptPrivacy />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/stories" element={<AuthOnlyRoute><Stories /></AuthOnlyRoute>} />
+        <Route path="/stories/find" element={<AuthOnlyRoute><FindUsers /></AuthOnlyRoute>} />
 
-        <Route
-          path="/stories"
-          element={
-            <AuthOnlyRoute>
-              <Stories />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/stories/find"
-          element={
-            <AuthOnlyRoute>
-              <FindUsers />
-            </AuthOnlyRoute>
-          }
-        />
-
-        <Route
-          path="/tutors/create"
-          element={
-            <AuthOnlyRoute>
-              <TutorCreate />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/tutors/myads"
-          element={
-            <AuthOnlyRoute>
-              <MyTutorAds />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/tutors/create" element={<AuthOnlyRoute><TutorCreate /></AuthOnlyRoute>} />
+        <Route path="/tutors/myads" element={<AuthOnlyRoute><MyTutorAds /></AuthOnlyRoute>} />
         <Route path="/tutors/:tutorId/reviews" element={<TutorReviews />} />
-        <Route
-          path="/tutors/edit/:tutorId"
-          element={
-            <AuthOnlyRoute>
-              <TutorEdit />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/tutors/edit/:tutorId" element={<AuthOnlyRoute><TutorEdit /></AuthOnlyRoute>} />
 
-        <Route
-          path="/market/create"
-          element={
-            <AuthOnlyRoute>
-              <MarketCreate />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/market/mylistings"
-          element={
-            <AuthOnlyRoute>
-              <MyMarketListings />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/market/mycustomers"
-          element={
-            <AuthOnlyRoute>
-              <MyMarketCustomers />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/market/customer/:customerId"
-          element={
-            <AuthOnlyRoute>
-              <CustomerDetail />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/market/chat/:itemId"
-          element={
-            <AuthOnlyRoute>
-              <MarketChat />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/market/create" element={<AuthOnlyRoute><MarketCreate /></AuthOnlyRoute>} />
+        <Route path="/market/mylistings" element={<AuthOnlyRoute><MyMarketListings /></AuthOnlyRoute>} />
+        <Route path="/market/mycustomers" element={<AuthOnlyRoute><MyMarketCustomers /></AuthOnlyRoute>} />
+        <Route path="/market/customer/:customerId" element={<AuthOnlyRoute><CustomerDetail /></AuthOnlyRoute>} />
+        <Route path="/market/chat/:itemId" element={<AuthOnlyRoute><MarketChat /></AuthOnlyRoute>} />
         <Route path="/market/:itemId" element={<MarketDetail />} />
-        <Route
-          path="/market/edit/:itemId"
-          element={
-            <AuthOnlyRoute>
-              <MarketEdit />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/market/edit/:itemId" element={<AuthOnlyRoute><MarketEdit /></AuthOnlyRoute>} />
 
-        <Route
-          path="/clubs/create"
-          element={
-            <AuthOnlyRoute>
-              <ClubCreate />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/clubs/:clubId"
-          element={
-            <AuthOnlyRoute>
-              <ClubDetail />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/clubs/:clubId/chat"
-          element={
-            <AuthOnlyRoute>
-              <ClubChat />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/clubs/create" element={<AuthOnlyRoute><ClubCreate /></AuthOnlyRoute>} />
+        <Route path="/clubs/:clubId" element={<AuthOnlyRoute><ClubDetail /></AuthOnlyRoute>} />
+        <Route path="/clubs/:clubId/chat" element={<AuthOnlyRoute><ClubChat /></AuthOnlyRoute>} />
 
-        <Route
-          path="/bursaries/create"
-          element={
-            <AuthOnlyRoute>
-              <BursaryCreate />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/bursaries/my-posts"
-          element={
-            <AuthOnlyRoute>
-              <MyBursaries />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/bursaries/edit/:bursaryId"
-          element={
-            <AuthOnlyRoute>
-              <BursaryEdit />
-            </AuthOnlyRoute>
-          }
-        />
-        <Route
-          path="/bursaries/chat/:bursaryId"
-          element={
-            <AuthOnlyRoute>
-              <BursaryChat />
-            </AuthOnlyRoute>
-          }
-        />
+        <Route path="/bursaries/create" element={<AuthOnlyRoute><BursaryCreate /></AuthOnlyRoute>} />
+        <Route path="/bursaries/my-posts" element={<AuthOnlyRoute><MyBursaries /></AuthOnlyRoute>} />
+        <Route path="/bursaries/edit/:bursaryId" element={<AuthOnlyRoute><BursaryEdit /></AuthOnlyRoute>} />
+        <Route path="/bursaries/chat/:bursaryId" element={<AuthOnlyRoute><BursaryChat /></AuthOnlyRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

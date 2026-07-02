@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { quizData } from '../lib/quizData';
+import { getUniversityDegrees } from '../lib/universityQuizData';
 import Navbar from '@/components/Navbar';
-import { Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 function Quiz() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -12,58 +13,63 @@ function Quiz() {
   const [score, setScore] = useState(0);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [showDegree, setShowDegree] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [university, setUniversity] = useState(null);
+  const [universityDegrees, setUniversityDegrees] = useState(null);
 
-  // Load approved quizzes from localStorage
-  const approvedQuizzes = JSON.parse(localStorage.getItem('approvedQuizzes') || '[]');
-  
-  // Combine with existing categories
+  // Detect user's university from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('selectedUniversity');
+    if (saved) {
+      try {
+        const uni = JSON.parse(saved);
+        setUniversity(uni);
+        // Get university-specific degree data
+        const degrees = getUniversityDegrees(uni.id);
+        if (degrees) {
+          setUniversityDegrees(degrees);
+        }
+      } catch (e) {
+        console.error('Error parsing university:', e);
+      }
+    }
+  }, []);
+
   const categories = showDegree ? quizData.degreeCategories : quizData.categories;
-  
-  // Add approved quizzes as a special category
-  const allCategories = [...categories];
-  if (approvedQuizzes.length > 0) {
-    allCategories.push({
-      id: 'approved',
-      name: '✅ Submitted Quizzes',
-      icon: '✅',
-      questions: approvedQuizzes.flatMap(q => q.questions)
-    });
-  }
-
   const currentQuestions = selectedCategory?.questions || [];
   const currentQuestion = currentQuestions[currentQuestionIndex];
 
-  // Category selection screen
+  // Get university-specific degree categories if available
+  const getUniversityCategories = () => {
+    if (universityDegrees && universityDegrees.degrees) {
+      return universityDegrees.degrees.map(deg => ({
+        id: deg.id,
+        name: deg.name,
+        icon: deg.icon || '🎓',
+        questions: deg.questions,
+        faculty: universityDegrees.name,
+        isUniversitySpecific: true
+      }));
+    }
+    return [];
+  };
+
+  const universityCategories = getUniversityCategories();
+  const allDegreeCategories = [...universityCategories, ...quizData.degreeCategories];
+
   if (!selectedCategory) {
     return (
       <div className="min-h-screen bg-[#FAFAF7]">
         <Navbar />
         <div style={{ padding: '30px', maxWidth: '900px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h1 style={{ color: '#1a237e', margin: 0 }}>📝 Campus Connect Quizzes</h1>
-              <p style={{ color: '#666', margin: '5px 0 0 0' }}>Test your knowledge! Choose a category below:</p>
+          <h1 style={{ textAlign: 'center', color: '#1a237e' }}>📝 Campus Connect Quizzes</h1>
+          <p style={{ textAlign: 'center', color: '#666' }}>Test your knowledge! Choose a category below:</p>
+
+          {/* Show University Name if logged in */}
+          {university && (
+            <div style={{ textAlign: 'center', margin: '10px 0 20px', padding: '10px', background: '#e3f2fd', borderRadius: '8px' }}>
+              <span style={{ color: '#1a237e', fontWeight: 'bold' }}>🎓 {university.name}</span>
             </div>
-            <button
-              onClick={() => setShowSubmitModal(true)}
-              style={{
-                padding: '10px 20px',
-                background: '#1a237e',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Plus size={18} /> Submit Quiz
-            </button>
-          </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', margin: '20px 0' }}>
             <button
@@ -96,8 +102,16 @@ function Quiz() {
             </button>
           </div>
 
+          {showDegree && university && (
+            <div style={{ marginBottom: '15px', padding: '10px', background: '#f0f4ff', borderRadius: '8px', textAlign: 'center' }}>
+              <span style={{ color: '#1a237e', fontSize: '14px' }}>
+                📚 Showing degree quizzes for <strong>{university.name}</strong>
+              </span>
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-            {allCategories.map((cat) => (
+            {(showDegree ? allDegreeCategories : categories).map((cat) => (
               <div
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat)}
@@ -108,17 +122,19 @@ function Quiz() {
                   boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                   cursor: 'pointer',
                   textAlign: 'center',
-                  border: cat.id === 'approved' ? '2px solid #4CAF50' : '2px solid transparent',
+                  border: cat.isUniversitySpecific ? '2px solid #4CAF50' : '2px solid transparent',
                   transition: 'all 0.3s'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1a237e'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = cat.id === 'approved' ? '#4CAF50' : 'transparent'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = cat.isUniversitySpecific ? '#4CAF50' : 'transparent'}
               >
                 <div style={{ fontSize: '3rem' }}>{cat.icon || '📝'}</div>
                 <h3 style={{ color: '#1a237e', margin: '10px 0 5px' }}>{cat.name}</h3>
                 {cat.faculty && <p style={{ color: '#666', fontSize: '0.9rem', margin: '5px 0' }}>{cat.faculty}</p>}
                 <p style={{ color: '#888', fontSize: '0.9rem' }}>{cat.questions.length} questions</p>
-                {cat.id === 'approved' && <p style={{ color: '#4CAF50', fontSize: '0.8rem' }}>✅ Approved</p>}
+                {cat.isUniversitySpecific && (
+                  <p style={{ color: '#4CAF50', fontSize: '0.8rem', marginTop: '5px' }}>✅ Your University</p>
+                )}
               </div>
             ))}
           </div>
@@ -127,7 +143,6 @@ function Quiz() {
     );
   }
 
-  // Quiz completed screen
   if (quizCompleted) {
     const percentage = Math.round((score / currentQuestions.length) * 100);
     return (
@@ -167,7 +182,6 @@ function Quiz() {
     );
   }
 
-  // Question screen
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
       <Navbar />
@@ -195,6 +209,9 @@ function Quiz() {
         </button>
 
         <h2 style={{ color: '#1a237e' }}>{selectedCategory.icon} {selectedCategory.name}</h2>
+        {selectedCategory.isUniversitySpecific && (
+          <p style={{ color: '#4CAF50', fontSize: '0.9rem', marginTop: '4px' }}>🎓 Your University Quiz</p>
+        )}
         <p style={{ color: '#666' }}>Question {currentQuestionIndex + 1} of {currentQuestions.length}</p>
 
         <div style={{

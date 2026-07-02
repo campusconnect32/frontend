@@ -8,57 +8,30 @@ import {
   Megaphone,
   Users,
   BookOpen,
-  Plus,
-  ArrowRight
+  ShoppingBag,
+  DollarSign
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 const Home = () => {
   const sections = [
     {
-      id: 'quiz',
-      title: 'Quizzes',
-      description: 'Test your knowledge with general & degree-specific quizzes',
-      icon: Brain,
-      link: '/quiz',
-      color: 'bg-purple-100 text-purple-700',
-      border: 'border-purple-200'
+      id: 'tutors',
+      title: 'Tutors',
+      description: 'Find or become a tutor — knowledge shared is knowledge multiplied',
+      icon: BookOpen,
+      link: '/tutors',
+      color: 'bg-indigo-100 text-indigo-700',
+      border: 'border-indigo-200'
     },
     {
-      id: 'submit-quiz',
-      title: 'Submit Quiz',
-      description: 'Create your own quiz and share it with the campus community',
-      icon: Plus,
-      link: '/submit-quiz',
-      color: 'bg-teal-100 text-teal-700',
-      border: 'border-teal-200'
-    },
-    {
-      id: 'lost-found',
-      title: 'Lost & Found',
-      description: 'Report items found around campus and help fellow students',
-      icon: MapPin,
-      link: '/lost-found',
-      color: 'bg-blue-100 text-blue-700',
-      border: 'border-blue-200'
-    },
-    {
-      id: 'directions',
-      title: 'Directions',
-      description: 'Walkthrough videos and step-by-step campus directions',
-      icon: Navigation,
-      link: '/directions',
-      color: 'bg-green-100 text-green-700',
-      border: 'border-green-200'
-    },
-    {
-      id: 'events',
-      title: 'Events',
-      description: 'Discover events hosted by Wits departments & societies',
-      icon: Calendar,
-      link: '/events',
-      color: 'bg-pink-100 text-pink-700',
-      border: 'border-pink-200'
+      id: 'market',
+      title: 'Market',
+      description: 'Buy and sell essentials within your campus community',
+      icon: ShoppingBag,
+      link: '/market',
+      color: 'bg-emerald-100 text-emerald-700',
+      border: 'border-emerald-200'
     },
     {
       id: 'announcements',
@@ -70,23 +43,58 @@ const Home = () => {
       border: 'border-orange-200'
     },
     {
-      id: 'tutors',
-      title: 'Tutors',
-      description: 'Find or become a tutor — knowledge shared is knowledge multiplied',
-      icon: BookOpen,
-      link: '/tutors',
-      color: 'bg-indigo-100 text-indigo-700',
-      border: 'border-indigo-200'
-    },
-    {
       id: 'clubs',
-      title: 'Societies',
-      description: 'Coming soon — campus clubs & groups',
+      title: 'Clubs',
+      description: 'Campus clubs & groups — connect with your community',
       icon: Users,
       link: '/clubs',
       color: 'bg-yellow-100 text-yellow-700',
-      border: 'border-yellow-200',
-      comingSoon: true
+      border: 'border-yellow-200'
+    },
+    {
+      id: 'events',
+      title: 'Events',
+      description: 'Discover events hosted by Wits departments & societies',
+      icon: Calendar,
+      link: '/events',
+      color: 'bg-pink-100 text-pink-700',
+      border: 'border-pink-200'
+    },
+    {
+      id: 'lost-found',
+      title: 'Lost & Found',
+      description: 'Report items found around campus and help fellow students',
+      icon: MapPin,
+      link: '/lost-found',
+      color: 'bg-blue-100 text-blue-700',
+      border: 'border-blue-200'
+    },
+    {
+      id: 'bursaries',
+      title: 'Bursaries',
+      description: 'Find and apply for bursaries to fund your studies',
+      icon: DollarSign,
+      link: '/bursaries',
+      color: 'bg-rose-100 text-rose-700',
+      border: 'border-rose-200'
+    },
+    {
+      id: 'quiz',
+      title: 'Quizzes',
+      description: 'Test your knowledge with general & degree-specific quizzes',
+      icon: Brain,
+      link: '/quiz',
+      color: 'bg-purple-100 text-purple-700',
+      border: 'border-purple-200'
+    },
+    {
+      id: 'directions',
+      title: 'Directions',
+      description: 'Walkthrough videos and step-by-step campus directions',
+      icon: Navigation,
+      link: '/directions',
+      color: 'bg-green-100 text-green-700',
+      border: 'border-green-200'
     }
   ];
 
@@ -115,18 +123,12 @@ const Home = () => {
                 </div>
               </div>
               <div className="mt-4">
-                {section.comingSoon ? (
-                  <span className="inline-block bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
-                    Coming Soon
-                  </span>
-                ) : (
-                  <Link
-                    to={section.link}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-[#1a237e] hover:text-[#0d1550] transition-colors"
-                  >
-                    Go →
-                  </Link>
-                )}
+                <Link
+                  to={section.link}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[#1a237e] hover:text-[#0d1550] transition-colors"
+                >
+                  Go →
+                </Link>
               </div>
             </div>
           ))}

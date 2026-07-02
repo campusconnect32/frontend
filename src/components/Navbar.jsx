@@ -5,9 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [university, setUniversity] = useState(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('selectedUniversity');
@@ -20,123 +20,110 @@ const Navbar = () => {
     }
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
-    setMobileOpen(false);
   };
 
-  const handleChangeUniversity = () => {
-    localStorage.removeItem('selectedUniversity');
-    window.dispatchEvent(new Event('universitySelected'));
-    navigate('/');
-    setMobileOpen(false);
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
 
-  const closeMobileMenu = () => setMobileOpen(false);
-
-  // All navigation links
-  const navLinks = [
-    { to: '/market', label: 'Market' },
-    { to: '/tutors', label: 'Tutors' },
-    { to: '/clubs', label: 'Clubs' },
-    { to: '/bursaries', label: 'Bursaries' },
-    { to: '/quiz', label: 'Quizzes' },
-    { to: '/lost-found', label: 'Lost & Found' },
-    { to: '/directions', label: 'Directions' },
-    { to: '/events', label: 'Events' },
-    { to: '/announcements', label: 'Announcements' },
-    { to: '/profile', label: 'Profile' },
-  ];
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo + university badge */}
+        {/* Logo */}
         <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center gap-2 text-[#1a237e]">
+          <Link to="/" className="flex items-center gap-2 text-[#1a237e]" onClick={closeMenu}>
             <Heart className="w-6 h-6" />
             <span className="font-bold text-xl">CampusConnect</span>
           </Link>
           {university && (
-            <button
-              onClick={handleChangeUniversity}
-              title="Click to change university"
-              className="text-xs text-[#6B6B70] bg-gray-100 px-2 py-0.5 rounded hover:bg-gray-200 hover:text-[#1a237e] transition-colors"
-            >
+            <span className="text-xs text-[#6B6B70] bg-gray-100 px-2 py-0.5 rounded hidden sm:inline">
               {university.short}
-            </button>
+            </span>
           )}
         </div>
 
-        {/* Desktop links */}
+        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
-          {navLinks.map(link => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="text-gray-600 hover:text-[#1a237e] text-sm font-medium"
-            >
-              {link.label}
-            </Link>
-          ))}
+          <Link to="/market" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Market</Link>
+          <Link to="/tutors" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Tutors</Link>
+          <Link to="/clubs" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Clubs</Link>
+          <Link to="/bursaries" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Bursaries</Link>
+          <Link to="/quiz" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Quizzes</Link>
+          <Link to="/lost-found" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Lost & Found</Link>
+          <Link to="/directions" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Directions</Link>
+          <Link to="/events" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Events</Link>
+          <Link to="/announcements" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Announcements</Link>
+          <Link to="/profile" className="text-gray-600 hover:text-[#1a237e] text-sm font-medium">Profile</Link>
         </div>
 
-        {/* Desktop auth buttons */}
-        <div className="hidden md:flex items-center gap-3">
-          {user ? (
-            <button onClick={handleLogout} className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600">
+        {/* Right side */}
+        <div className="flex items-center gap-3">
+          {/* Show loading state while checking auth */}
+          {loading ? (
+            <div className="hidden sm:flex items-center gap-1 text-sm text-gray-400">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-[#1a237e] rounded-full animate-spin"></div>
+            </div>
+          ) : user ? (
+            <button onClick={handleLogout} className="hidden sm:flex items-center gap-1 text-sm text-gray-600 hover:text-red-600">
               <LogOut size={16} /> Sign Out
             </button>
           ) : (
-            <Link to="/login" className="bg-[#1a237e] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#0d1550]">
+            <Link to="/login" className="hidden sm:block bg-[#1a237e] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#0d1550]">
               Sign In
             </Link>
           )}
-        </div>
 
-        {/* Mobile menu button */}
-        <div className="md:hidden flex items-center">
+          {/* Mobile Menu Button */}
           <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="text-gray-600 hover:text-[#1a237e] p-1"
+            onClick={toggleMenu}
+            className="md:hidden text-gray-600 hover:text-[#1a237e] p-1"
+            aria-label="Toggle menu"
           >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="md:hidden border-t border-gray-200 mt-2 pt-2 pb-3 space-y-1">
-          {navLinks.map(link => (
-            <Link
-              key={link.to}
-              to={link.to}
-              onClick={closeMobileMenu}
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[#1a237e] hover:bg-gray-50"
+      {/* Mobile Navigation Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden mt-3 pt-3 border-t border-gray-200 flex flex-col gap-1">
+          <Link to="/market" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Market</Link>
+          <Link to="/tutors" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Tutors</Link>
+          <Link to="/clubs" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Clubs</Link>
+          <Link to="/bursaries" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Bursaries</Link>
+          <Link to="/quiz" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Quizzes</Link>
+          <Link to="/lost-found" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Lost & Found</Link>
+          <Link to="/directions" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Directions</Link>
+          <Link to="/events" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Events</Link>
+          <Link to="/announcements" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Announcements</Link>
+          <Link to="/profile" className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg" onClick={closeMenu}>Profile</Link>
+          
+          <div className="border-t border-gray-200 my-2"></div>
+          
+          {loading ? (
+            <div className="px-3 py-2 text-gray-400 flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-[#1a237e] rounded-full animate-spin"></div>
+              <span>Loading...</span>
+            </div>
+          ) : user ? (
+            <button 
+              onClick={() => { handleLogout(); closeMenu(); }} 
+              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-left"
             >
-              {link.label}
+              Sign Out
+            </button>
+          ) : (
+            <Link to="/login" className="px-3 py-2 text-[#1a237e] font-semibold hover:bg-gray-50 rounded-lg" onClick={closeMenu}>
+              Sign In
             </Link>
-          ))}
-          <div className="pt-2 border-t border-gray-200">
-            {user ? (
-              <button
-                onClick={handleLogout}
-                className="block w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50 rounded-md"
-              >
-                Sign Out
-              </button>
-            ) : (
-              <Link
-                to="/login"
-                onClick={closeMobileMenu}
-                className="block text-center px-3 py-2 mx-3 bg-[#1a237e] text-white rounded-lg text-base font-medium hover:bg-[#0d1550]"
-              >
-                Sign In
-              </Link>
-            )}
-          </div>
+          )}
         </div>
       )}
     </nav>

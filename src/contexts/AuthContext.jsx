@@ -11,15 +11,17 @@ export function AuthProvider({ children }) {
   const refresh = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
+      console.log("🔍 Auth refresh - token exists:", !!token);
       if (!token) {
         setUser(null);
         return null;
       }
       const u = await getMe();
+      console.log("✅ Auth refresh - user:", u?.email);
       setUser(u);
       return u;
     } catch (err) {
-      console.warn("Auth refresh failed:", err?.response?.status);
+      console.warn("❌ Auth refresh failed:", err?.response?.status);
       localStorage.removeItem("token");
       setUser(null);
       return null;
@@ -27,32 +29,33 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // Only run once on mount
     if (initialCheckDone.current) return;
     initialCheckDone.current = true;
 
     let isMounted = true;
-    
+
     (async () => {
       const token = localStorage.getItem("token");
+      console.log("🔍 Initial auth check - token exists:", !!token);
       if (!token) {
         if (isMounted) setLoading(false);
         return;
       }
       try {
         const u = await getMe();
+        console.log("✅ Initial auth check - user:", u?.email);
         if (isMounted) setUser(u);
       } catch (err) {
-        console.warn("Initial auth check failed:", err?.response?.status);
+        console.warn("❌ Initial auth check failed:", err?.response?.status);
         localStorage.removeItem("token");
         if (isMounted) setUser(null);
       } finally {
         if (isMounted) setLoading(false);
       }
     })();
-    
+
     return () => { isMounted = false; };
-  }, []); // Empty array — runs only once
+  }, []);
 
   const logout = useCallback(async () => {
     try { await apiLogout(); } catch (err) { console.warn("Logout API failed:", err); }

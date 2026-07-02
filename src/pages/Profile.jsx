@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import ImageUpload from "@/components/ImageUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Save, Edit3, X, Camera, MapPin, RefreshCw, Trash2 } from "lucide-react";
+import { Save, Edit3, X, Camera, MapPin, RefreshCw, Trash2, Building } from "lucide-react";
 
 const Profile = React.memo(() => {
   const { user, logout } = useAuth();
@@ -11,10 +11,14 @@ const Profile = React.memo(() => {
   const [saving, setSaving] = useState(false);
   const profilePicInputRef = useRef(null);
 
-  // Use local user data instead of fetching from backend
-  const displayName = user?.user_metadata?.name || user?.email || "User";
+  // Get user info from auth
+  const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || "User";
   const email = user?.email || "No email";
   const profileImage = user?.user_metadata?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(displayName) + "&background=7C3AED&color=fff";
+
+  // Get current university (display only)
+  const savedUniversity = localStorage.getItem('selectedUniversity');
+  const currentUniversity = savedUniversity ? JSON.parse(savedUniversity) : null;
 
   const [form, setForm] = useState({
     display_name: displayName,
@@ -48,7 +52,7 @@ const Profile = React.memo(() => {
     try {
       setProfile(form);
       setEditing(false);
-      toast.success("Profile updated locally!");
+      toast.success("Profile updated!");
     } catch (err) {
       toast.error("Failed to save");
     } finally {
@@ -73,11 +77,6 @@ const Profile = React.memo(() => {
     await logout();
   };
 
-  const handleChangeUniversity = () => {
-    localStorage.removeItem('selectedUniversity');
-    window.location.href = '/';
-  };
-
   const age = profile.date_of_birth ? new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear() : null;
 
   return (
@@ -90,6 +89,19 @@ const Profile = React.memo(() => {
             {editing ? <><X className="w-4 h-4" /> Cancel</> : <><Edit3 className="w-4 h-4" /> Edit</>}
           </button>
         </div>
+
+        {/* University Info - Display Only */}
+        {currentUniversity && (
+          <div className="bg-white border border-[#1a237e]/20 rounded-2xl p-4 mb-4 bg-[#1a237e]/5">
+            <div className="flex items-center gap-3">
+              <Building className="w-5 h-5 text-[#1a237e]" />
+              <div>
+                <div className="text-sm font-medium text-[#1a237e]">Your University</div>
+                <div className="text-sm text-[#6B6B70]">{currentUniversity.name}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Location Status */}
         <div className="bg-white border border-[#E7E5E0] rounded-2xl p-4 mb-4 flex items-center justify-between">
@@ -109,7 +121,7 @@ const Profile = React.memo(() => {
         <div className="bg-white border border-[#E7E5E0] rounded-2xl p-5 mb-4">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-2">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-2 flex-shrink-0">
                 <img
                   src={form.profile_image || profileImage}
                   alt="Profile"
@@ -126,17 +138,18 @@ const Profile = React.memo(() => {
               )}
               <input ref={profilePicInputRef} type="file" accept="image/*" className="hidden" onChange={handleProfilePicChange} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {editing ? (
                 <input
                   value={form.display_name || displayName}
                   onChange={e => updateField("display_name", e.target.value)}
                   className="w-full text-xl font-semibold border rounded-lg px-3 py-1"
+                  placeholder="Your name"
                 />
               ) : (
-                <h2 className="text-xl font-semibold">{profile.display_name || displayName}</h2>
+                <h2 className="text-xl font-semibold truncate">{profile.display_name || displayName}</h2>
               )}
-              <p className="text-sm text-[#6B6B70]">{profile.email || email}</p>
+              <p className="text-sm text-[#6B6B70] truncate">{profile.email || email}</p>
               {age && <p className="text-sm text-[#6B6B70]">{age} years</p>}
             </div>
           </div>
@@ -218,16 +231,6 @@ const Profile = React.memo(() => {
             {saving ? "Saving..." : "Save Changes"} <Save className="w-4 h-4 inline" />
           </button>
         )}
-
-        {/* Change University Button */}
-        <div className="mt-4 text-center">
-          <button
-            onClick={handleChangeUniversity}
-            className="text-sm text-[#1a237e] hover:underline flex items-center justify-center gap-1 mx-auto"
-          >
-            🔄 Change University
-          </button>
-        </div>
 
         {/* Delete Account */}
         <div className="mt-8 text-center">

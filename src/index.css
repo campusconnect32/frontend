@@ -26,7 +26,7 @@ html, body {
     margin: 0;
     /* Warm gradient image with a soft white overlay for readability */
     background: linear-gradient(rgba(255,255,255,0.45), rgba(255,255,255,0.45)), 
-                url('https://tse1.mm.bing.net/th/id/OIP.BWJp6VdQ5dXnGZn9-A6ctAHaH0?rs=1&pid=ImgDetMain&o=7&rm=3') 
+                url('') 
                 center / cover fixed no-repeat;
     color: var(--stok-ink);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
