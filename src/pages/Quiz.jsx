@@ -3,6 +3,8 @@ import { quizData } from '../lib/quizData';
 import { getUniversityDegrees } from '../lib/universityQuizData';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
+import { Plus, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 function Quiz() {
   const { user } = useAuth();
@@ -15,6 +17,22 @@ function Quiz() {
   const [showDegree, setShowDegree] = useState(false);
   const [university, setUniversity] = useState(null);
   const [universityDegrees, setUniversityDegrees] = useState(null);
+  
+  // Submit Quiz Modal
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [quizForm, setQuizForm] = useState({
+    title: '',
+    category: 'General',
+    questions: [
+      {
+        question: '',
+        options: ['', '', '', ''],
+        correctAnswerIndex: 0,
+        explanation: ''
+      }
+    ]
+  });
 
   // Detect user's university from localStorage
   useEffect(() => {
@@ -23,7 +41,6 @@ function Quiz() {
       try {
         const uni = JSON.parse(saved);
         setUniversity(uni);
-        // Get university-specific degree data
         const degrees = getUniversityDegrees(uni.id);
         if (degrees) {
           setUniversityDegrees(degrees);
@@ -33,6 +50,121 @@ function Quiz() {
       }
     }
   }, []);
+
+  // Submit Quiz Functions
+  const addQuestion = () => {
+    setQuizForm({
+      ...quizForm,
+      questions: [
+        ...quizForm.questions,
+        {
+          question: '',
+          options: ['', '', '', ''],
+          correctAnswerIndex: 0,
+          explanation: ''
+        }
+      ]
+    });
+  };
+
+  const removeQuestion = (index) => {
+    if (quizForm.questions.length <= 1) {
+      toast.warning('You need at least one question');
+      return;
+    }
+    const newQuestions = quizForm.questions.filter((_, i) => i !== index);
+    setQuizForm({ ...quizForm, questions: newQuestions });
+  };
+
+  const updateQuestion = (index, field, value) => {
+    const newQuestions = [...quizForm.questions];
+    newQuestions[index][field] = value;
+    setQuizForm({ ...quizForm, questions: newQuestions });
+  };
+
+  const updateOption = (qIndex, oIndex, value) => {
+    const newQuestions = [...quizForm.questions];
+    newQuestions[qIndex].options[oIndex] = value;
+    setQuizForm({ ...quizForm, questions: newQuestions });
+  };
+
+  const handleSubmitQuiz = async () => {
+    if (!quizForm.title.trim()) {
+      toast.error('Please enter a quiz title');
+      return;
+    }
+    
+    for (let i = 0; i < quizForm.questions.length; i++) {
+      const q = quizForm.questions[i];
+      if (!q.question.trim()) {
+        toast.error(`Question ${i + 1} is empty`);
+        return;
+      }
+      for (let j = 0; j < q.options.length; j++) {
+        if (!q.options[j].trim()) {
+          toast.error(`Option ${j + 1} in question ${i + 1} is empty`);
+          return;
+        }
+      }
+      if (!q.explanation.trim()) {
+        toast.error(`Question ${i + 1} is missing an explanation`);
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    
+    try {
+      const pendingList = JSON.parse(localStorage.getItem('adminPendingQuizzes') || '[]');
+      const newSubmission = {
+        id: Date.now(),
+        ...quizForm,
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+        submittedBy: user?.email || 'Student'
+      };
+      
+      pendingList.push(newSubmission);
+      localStorage.setItem('adminPendingQuizzes', JSON.stringify(pendingList));
+      
+      toast.success('Quiz submitted for review!');
+      setShowSubmitModal(false);
+      setQuizForm({
+        title: '',
+        category: 'General',
+        questions: [
+          {
+            question: '',
+            options: ['', '', '', ''],
+            correctAnswerIndex: 0,
+            explanation: ''
+          }
+        ]
+      });
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+      toast.error('Failed to submit quiz. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const categoryOptions = [
+    'General',
+    'South African Trivia',
+    'Campus Life',
+    'Current Affairs',
+    'Science & Technology',
+    'Accounting & Accounting Science',
+    'Law (LLB)',
+    'Computer Science',
+    'Economics & Economic Science',
+    'Commerce (General/Finance/HR/Management)',
+    'Engineering & Built Environment',
+    'Health Sciences',
+    'Humanities',
+    'Science'
+  ];
 
   const categories = showDegree ? quizData.degreeCategories : quizData.categories;
   const currentQuestions = selectedCategory?.questions || [];
@@ -61,10 +193,31 @@ function Quiz() {
       <div className="min-h-screen bg-[#FAFAF7]">
         <Navbar />
         <div style={{ padding: '30px', maxWidth: '900px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-          <h1 style={{ textAlign: 'center', color: '#1a237e' }}>📝 Campus Connect Quizzes</h1>
-          <p style={{ textAlign: 'center', color: '#666' }}>Test your knowledge! Choose a category below:</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div>
+              <h1 style={{ color: '#1a237e', margin: 0 }}>📝 Campus Connect Quizzes</h1>
+              <p style={{ color: '#666', margin: '5px 0 0 0' }}>Test your knowledge! Choose a category below:</p>
+            </div>
+            <button
+              onClick={() => setShowSubmitModal(true)}
+              style={{
+                padding: '10px 20px',
+                background: '#1a237e',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Plus size={18} /> Submit Quiz
+            </button>
+          </div>
 
-          {/* Show University Name if logged in */}
           {university && (
             <div style={{ textAlign: 'center', margin: '10px 0 20px', padding: '10px', background: '#e3f2fd', borderRadius: '8px' }}>
               <span style={{ color: '#1a237e', fontWeight: 'bold' }}>🎓 {university.name}</span>
@@ -102,14 +255,6 @@ function Quiz() {
             </button>
           </div>
 
-          {showDegree && university && (
-            <div style={{ marginBottom: '15px', padding: '10px', background: '#f0f4ff', borderRadius: '8px', textAlign: 'center' }}>
-              <span style={{ color: '#1a237e', fontSize: '14px' }}>
-                📚 Showing degree quizzes for <strong>{university.name}</strong>
-              </span>
-            </div>
-          )}
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
             {(showDegree ? allDegreeCategories : categories).map((cat) => (
               <div
@@ -139,6 +284,136 @@ function Quiz() {
             ))}
           </div>
         </div>
+
+        {/* Submit Quiz Modal */}
+        {showSubmitModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '30px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0, color: '#1a237e' }}>Submit a Quiz</h2>
+                <button onClick={() => setShowSubmitModal(false)} style={{ cursor: 'pointer', background: 'none', border: 'none', fontSize: '24px' }}>
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>Quiz Title</label>
+                <input
+                  type="text"
+                  value={quizForm.title}
+                  onChange={(e) => setQuizForm({...quizForm, title: e.target.value})}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }}
+                  placeholder="e.g. Wits Campus History Quiz"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>Category</label>
+                <select
+                  value={quizForm.category}
+                  onChange={(e) => setQuizForm({...quizForm, category: e.target.value})}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }}
+                >
+                  {categoryOptions.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontWeight: 'bold' }}>Questions</label>
+                  <button onClick={addQuestion} style={{ padding: '4px 12px', background: '#1a237e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                    + Add Question
+                  </button>
+                </div>
+
+                {quizForm.questions.map((q, qIndex) => (
+                  <div key={qIndex} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '16px', marginTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong>Question {qIndex + 1}</strong>
+                      <button onClick={() => removeQuestion(qIndex)} style={{ color: 'red', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    <input
+                      type="text"
+                      value={q.question}
+                      onChange={(e) => updateQuestion(qIndex, 'question', e.target.value)}
+                      style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', marginTop: '8px' }}
+                      placeholder="Enter question..."
+                    />
+                    <div style={{ marginTop: '8px' }}>
+                      {q.options.map((opt, oIndex) => (
+                        <div key={oIndex} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
+                            style={{ flex: 1, padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                            placeholder={`Option ${String.fromCharCode(65 + oIndex)}`}
+                          />
+                        </div>
+                      ))}
+                      <select
+                        value={q.correctAnswerIndex}
+                        onChange={(e) => updateQuestion(qIndex, 'correctAnswerIndex', parseInt(e.target.value))}
+                        style={{ marginTop: '8px', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                      >
+                        {q.options.map((_, oIndex) => (
+                          <option key={oIndex} value={oIndex}>Correct: {String.fromCharCode(65 + oIndex)}</option>
+                        ))}
+                      </select>
+                      <textarea
+                        value={q.explanation}
+                        onChange={(e) => updateQuestion(qIndex, 'explanation', e.target.value)}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', marginTop: '8px' }}
+                        placeholder="Explanation..."
+                        rows="2"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={handleSubmitQuiz}
+                disabled={submitting}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: '#1a237e',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                {submitting ? 'Submitting...' : 'Submit Quiz for Review'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
