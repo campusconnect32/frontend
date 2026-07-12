@@ -1,9 +1,10 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import ImageUpload from "@/components/ImageUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Save, Edit3, X, Camera, MapPin, RefreshCw, Trash2, Building } from "lucide-react";
+import { Save, Edit3, X, Camera, MapPin, Trash2, Building } from "lucide-react";
+import { getProfile, updateProfile } from "@/lib/api"; // added imports
 
 const Profile = React.memo(() => {
   const { user, logout } = useAuth();
@@ -11,37 +12,61 @@ const Profile = React.memo(() => {
   const [saving, setSaving] = useState(false);
   const profilePicInputRef = useRef(null);
 
-  // Get user info from auth
-  const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || "User";
-  const email = user?.email || "No email";
-  const profileImage = user?.user_metadata?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(displayName) + "&background=7C3AED&color=fff";
+  // Default fallback values
+  const defaultDisplayName = user?.name || user?.email?.split("@")[0] || "User";
+  const defaultEmail = user?.email || "No email";
+  const defaultProfileImage =
+    user?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(defaultDisplayName)}&background=7C3AED&color=fff`;
 
-  // Get current university (display only)
-  const savedUniversity = localStorage.getItem('selectedUniversity');
-  const currentUniversity = savedUniversity ? JSON.parse(savedUniversity) : null;
-
+  // Form state – will be populated from backend
   const [form, setForm] = useState({
-    display_name: displayName,
+    display_name: defaultDisplayName,
     date_of_birth: "",
     gender: "",
     year_of_study: "",
     course: "",
     campus: "",
     gallery_images: [],
-    profile_image: profileImage,
+    profile_image: defaultProfileImage,
   });
 
+  // Current profile state (displayed when not editing)
   const [profile, setProfile] = useState({
-    display_name: displayName,
-    email: email,
+    display_name: defaultDisplayName,
+    email: defaultEmail,
     date_of_birth: "",
     gender: "",
     year_of_study: "",
     course: "",
     campus: "",
     gallery_images: [],
-    profile_image: profileImage,
+    profile_image: defaultProfileImage,
   });
+
+  // Fetch full profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await getProfile();
+        const updatedProfile = {
+          display_name: data.display_name || defaultDisplayName,
+          email: data.email || defaultEmail,
+          date_of_birth: data.date_of_birth || "",
+          gender: data.gender || "",
+          year_of_study: data.year_of_study || "",
+          course: data.course || "",
+          campus: data.campus || "",
+          gallery_images: data.gallery_images || [],
+          profile_image: data.profile_image || data.picture || defaultProfileImage,
+        };
+        setProfile(updatedProfile);
+        setForm(updatedProfile); // sync form with fetched data
+      } catch (err) {
+        toast.error("Could not load profile");
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const updateField = useCallback((field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -50,11 +75,24 @@ const Profile = React.memo(() => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      setProfile(form);
+      // Build payload matching backend's ProfileUpdatePayload
+      const payload = {
+        display_name: form.display_name,
+        date_of_birth: form.date_of_birth || undefined,
+        gender: form.gender,
+        year_of_study: form.year_of_study,
+        course: form.course,
+        campus: form.campus,
+        profile_image: form.profile_image,
+        gallery_images: form.gallery_images,
+      };
+
+      await updateProfile(payload);
+      setProfile(form); // update displayed profile on success
       setEditing(false);
       toast.success("Profile updated!");
     } catch (err) {
-      toast.error("Failed to save");
+      toast.error("Failed to save changes");
     } finally {
       setSaving(false);
     }
@@ -66,18 +104,23 @@ const Profile = React.memo(() => {
     const reader = new FileReader();
     reader.onload = () => {
       updateField("profile_image", reader.result);
-      setProfile(prev => ({ ...prev, profile_image: reader.result }));
     };
     reader.readAsDataURL(file);
   };
 
   const handleDeleteAccount = async () => {
     if (!window.confirm("Permanently delete your account and all data? This cannot be undone.")) return;
-    toast.success("Account deleted");
+    // You would typically call an API endpoint for deletion here
+    toast.success("Account deleted (demo)");
     await logout();
   };
 
-  const age = profile.date_of_birth ? new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear() : null;
+  const age = profile.date_of_birth
+    ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))
+    : null;
+
+  const savedUniversity = localStorage.getItem("selectedUniversity");
+  const currentUniversity = savedUniversity ? JSON.parse(savedUniversity) : null;
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -85,12 +128,27 @@ const Profile = React.memo(() => {
       <main className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-semibold">My Profile</h1>
-          <button onClick={() => setEditing(!editing)} className="neo-btn">
-            {editing ? <><X className="w-4 h-4" /> Cancel</> : <><Edit3 className="w-4 h-4" /> Edit</>}
+          <button
+            onClick={() => {
+              if (editing) {
+                // Cancel editing: reset form to current profile
+                setForm(profile);
+                setEditing(false);
+              } else {
+                setEditing(true);
+              }
+            }}
+            className="neo-btn"
+          >
+            {editing ? (
+              <><X className="w-4 h-4" /> Cancel</>
+            ) : (
+              <><Edit3 className="w-4 h-4" /> Edit</>
+            )}
           </button>
         </div>
 
-        {/* University Info - Display Only */}
+        {/* University Info – Display Only */}
         {currentUniversity && (
           <div className="bg-white border border-[#1a237e]/20 rounded-2xl p-4 mb-4 bg-[#1a237e]/5">
             <div className="flex items-center gap-3">
@@ -103,7 +161,7 @@ const Profile = React.memo(() => {
           </div>
         )}
 
-        {/* Location Status */}
+        {/* Location Status – could be expanded */}
         <div className="bg-white border border-[#E7E5E0] rounded-2xl p-4 mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <MapPin className="w-5 h-5 text-[#6B6B70]" />
@@ -123,7 +181,7 @@ const Profile = React.memo(() => {
             <div className="relative">
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 flex-shrink-0">
                 <img
-                  src={form.profile_image || profileImage}
+                  src={form.profile_image || defaultProfileImage}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -136,20 +194,26 @@ const Profile = React.memo(() => {
                   <Camera className="w-4 h-4" />
                 </button>
               )}
-              <input ref={profilePicInputRef} type="file" accept="image/*" className="hidden" onChange={handleProfilePicChange} />
+              <input
+                ref={profilePicInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleProfilePicChange}
+              />
             </div>
             <div className="flex-1 min-w-0">
               {editing ? (
                 <input
-                  value={form.display_name || displayName}
+                  value={form.display_name}
                   onChange={e => updateField("display_name", e.target.value)}
                   className="w-full text-xl font-semibold border rounded-lg px-3 py-1"
                   placeholder="Your name"
                 />
               ) : (
-                <h2 className="text-xl font-semibold truncate">{profile.display_name || displayName}</h2>
+                <h2 className="text-xl font-semibold truncate">{profile.display_name}</h2>
               )}
-              <p className="text-sm text-[#6B6B70] truncate">{profile.email || email}</p>
+              <p className="text-sm text-[#6B6B70] truncate">{profile.email}</p>
               {age && <p className="text-sm text-[#6B6B70]">{age} years</p>}
             </div>
           </div>
@@ -159,20 +223,29 @@ const Profile = React.memo(() => {
         <div className="bg-white border border-[#E7E5E0] rounded-2xl p-5 mb-4">
           <label className="text-xs font-semibold uppercase text-[#6B6B70]">Date of Birth</label>
           {editing ? (
-            <input type="date" value={form.date_of_birth || ""} onChange={e => updateField("date_of_birth", e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2" />
+            <input
+              type="date"
+              value={form.date_of_birth || ""}
+              onChange={e => updateField("date_of_birth", e.target.value)}
+              className="w-full mt-1 border rounded-lg px-3 py-2"
+            />
           ) : (
             <p className="text-sm">{profile.date_of_birth || "Not set"}</p>
           )}
         </div>
 
-        {/* Student Info */}
+        {/* Student Info – all fields */}
         <div className="bg-white border border-[#E7E5E0] rounded-2xl p-5 mb-4 space-y-3">
           <h3 className="text-xs font-semibold uppercase text-[#6B6B70]">Student Info</h3>
 
           <div>
             <label className="text-xs font-semibold uppercase text-[#6B6B70]">Gender</label>
             {editing ? (
-              <select value={form.gender || ""} onChange={e => updateField("gender", e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2">
+              <select
+                value={form.gender || ""}
+                onChange={e => updateField("gender", e.target.value)}
+                className="w-full mt-1 border rounded-lg px-3 py-2"
+              >
                 <option value="">Select</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -186,7 +259,12 @@ const Profile = React.memo(() => {
           <div>
             <label className="text-xs font-semibold uppercase text-[#6B6B70]">Year of Study</label>
             {editing ? (
-              <input value={form.year_of_study || ""} onChange={e => updateField("year_of_study", e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2" placeholder="e.g. 2" />
+              <input
+                value={form.year_of_study || ""}
+                onChange={e => updateField("year_of_study", e.target.value)}
+                className="w-full mt-1 border rounded-lg px-3 py-2"
+                placeholder="e.g. 2nd Year"
+              />
             ) : (
               <p className="text-sm">{profile.year_of_study || "Not set"}</p>
             )}
@@ -195,7 +273,12 @@ const Profile = React.memo(() => {
           <div>
             <label className="text-xs font-semibold uppercase text-[#6B6B70]">Course</label>
             {editing ? (
-              <input value={form.course || ""} onChange={e => updateField("course", e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2" placeholder="e.g. Computer Science" />
+              <input
+                value={form.course || ""}
+                onChange={e => updateField("course", e.target.value)}
+                className="w-full mt-1 border rounded-lg px-3 py-2"
+                placeholder="e.g. Computer Science"
+              />
             ) : (
               <p className="text-sm">{profile.course || "Not set"}</p>
             )}
@@ -204,7 +287,12 @@ const Profile = React.memo(() => {
           <div>
             <label className="text-xs font-semibold uppercase text-[#6B6B70]">Campus</label>
             {editing ? (
-              <input value={form.campus || ""} onChange={e => updateField("campus", e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2" placeholder="e.g. Main Campus" />
+              <input
+                value={form.campus || ""}
+                onChange={e => updateField("campus", e.target.value)}
+                className="w-full mt-1 border rounded-lg px-3 py-2"
+                placeholder="e.g. Main Campus"
+              />
             ) : (
               <p className="text-sm">{profile.campus || "Not set"}</p>
             )}
@@ -215,20 +303,39 @@ const Profile = React.memo(() => {
         <div className="bg-white border border-[#E7E5E0] rounded-2xl p-5 mb-4">
           <label className="text-xs font-semibold uppercase text-[#6B6B70] block mb-2">Gallery</label>
           {editing ? (
-            <ImageUpload images={form.gallery_images || []} onChange={imgs => updateField("gallery_images", imgs)} maxImages={5} />
+            <ImageUpload
+              images={form.gallery_images || []}
+              onChange={imgs => updateField("gallery_images", imgs)}
+              maxImages={5}
+            />
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {(profile.gallery_images || []).map((img, i) => (
-                <div key={i} className="aspect-square rounded-lg overflow-hidden border"><img src={img} alt="" className="w-full h-full object-cover" /></div>
+                <div key={i} className="aspect-square rounded-lg overflow-hidden border">
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </div>
               ))}
-              {(!profile.gallery_images || profile.gallery_images.length === 0) && <p className="col-span-3 text-sm text-[#6B6B70]">No gallery images</p>}
+              {(!profile.gallery_images || profile.gallery_images.length === 0) && (
+                <p className="col-span-3 text-sm text-[#6B6B70]">No gallery images</p>
+              )}
             </div>
           )}
         </div>
 
         {editing && (
-          <button onClick={handleSave} disabled={saving} className="w-full bg-[#7C3AED] text-white py-3 rounded-xl font-semibold hover:bg-[#6D2FED] transition-colors">
-            {saving ? "Saving..." : "Save Changes"} <Save className="w-4 h-4 inline" />
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full bg-[#7C3AED] text-white py-3 rounded-xl font-semibold hover:bg-[#6D2FED] transition-colors"
+          >
+            {saving ? (
+              "Saving..."
+            ) : (
+              <>
+                <Save className="w-4 h-4 inline mr-2" />
+                Save Changes
+              </>
+            )}
           </button>
         )}
 

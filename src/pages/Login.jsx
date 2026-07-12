@@ -38,7 +38,15 @@ const Login = () => {
       toast.success('Logged in successfully!');
       navigate('/profile');
     } catch (error) {
-      toast.error('Login failed. Please check your credentials.');
+      const detail = error.response?.data?.detail || '';
+      // If the user is not verified, a new link was sent – inform them clearly
+      if (error.response?.status === 403 && detail.includes('verification')) {
+        toast.success(detail); // e.g. "Your email is not verified. A new verification link has been sent to your inbox."
+        // Optionally navigate to a "Check your email" page:
+        // navigate('/check-email');
+      } else {
+        toast.error(detail || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import "@/App.css";
@@ -48,6 +48,11 @@ const UniversitySelect = React.lazy(() => import("@/pages/UniversitySelect"));
 const AdminDashboard = React.lazy(() => import("@/pages/AdminDashboard"));
 const Support = React.lazy(() => import("@/pages/Support"));
 const CheckEmail = React.lazy(() => import("@/pages/CheckEmail"));
+const Resources = React.lazy(() => import("@/pages/Resources"));
+const SocialGroups = React.lazy(() => import("@/pages/SocialGroups"));
+const GroupChat = React.lazy(() => import("@/pages/GroupChat"));
+// NEW FEEDBACK IMPORT
+const Feedback = React.lazy(() => import("@/pages/Feedback"));
 
 function LoadingScreen() {
   return (
@@ -67,10 +72,8 @@ function SpinnerScreen() {
 
 function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
-
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-
   return children;
 }
 
@@ -92,12 +95,19 @@ function RootRoute() {
     };
   }, []);
 
-  // If no university selected, show UniversitySelect
+  const mirrorActive = localStorage.getItem("mirrorMode") === "true";
+  const mirrorUniId = localStorage.getItem("mirrorUniversityId");
+  const mirrorUniName = localStorage.getItem("mirrorUniversityName");
+  const mirrorUniShort = localStorage.getItem("mirrorUniversityShort");
+
+  if (mirrorActive && mirrorUniId && user) {
+    return <Home />;
+  }
+
   if (!savedUniversity) {
     return <UniversitySelect />;
   }
 
-  // If university selected but no user, show Login
   if (!loading && !user) {
     return <Navigate to="/login" replace />;
   }
@@ -120,7 +130,7 @@ function AppRouter() {
         <Route path="/support" element={<Support />} />
         <Route path="/university-select" element={<UniversitySelect />} />
 
-        {/* PROTECTED ROUTES - require login */}
+        {/* PROTECTED ROUTES */}
         <Route path="/events" element={<AuthOnlyRoute><Events /></AuthOnlyRoute>} />
         <Route path="/announcements" element={<AuthOnlyRoute><Announcements /></AuthOnlyRoute>} />
         <Route path="/quiz" element={<AuthOnlyRoute><Quiz /></AuthOnlyRoute>} />
@@ -130,6 +140,13 @@ function AppRouter() {
         <Route path="/market" element={<AuthOnlyRoute><Market /></AuthOnlyRoute>} />
         <Route path="/bursaries" element={<AuthOnlyRoute><Bursaries /></AuthOnlyRoute>} />
         <Route path="/clubs" element={<AuthOnlyRoute><Clubs /></AuthOnlyRoute>} />
+
+        <Route path="/resources" element={<AuthOnlyRoute><Resources /></AuthOnlyRoute>} />
+        <Route path="/social" element={<AuthOnlyRoute><SocialGroups /></AuthOnlyRoute>} />
+        <Route path="/social/group/:groupId" element={<AuthOnlyRoute><GroupChat /></AuthOnlyRoute>} />
+
+        {/* FEEDBACK ROUTE */}
+        <Route path="/feedback" element={<AuthOnlyRoute><Feedback /></AuthOnlyRoute>} />
 
         <Route path="/admin" element={<AuthOnlyRoute><AdminDashboard /></AuthOnlyRoute>} />
 
@@ -161,7 +178,7 @@ function AppRouter() {
         <Route path="/bursaries/my-posts" element={<AuthOnlyRoute><MyBursaries /></AuthOnlyRoute>} />
         <Route path="/bursaries/edit/:bursaryId" element={<AuthOnlyRoute><BursaryEdit /></AuthOnlyRoute>} />
         <Route path="/bursaries/chat/:bursaryId" element={<AuthOnlyRoute><BursaryChat /></AuthOnlyRoute>} />
-	<Route path="/check-email" element={<CheckEmail />} />
+        <Route path="/check-email" element={<CheckEmail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

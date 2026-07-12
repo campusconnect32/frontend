@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Clock, XCircle, Bell, Wrench, AlertTriangle, Plus, X } from 'lucide-react';
+import { Search, Clock, XCircle, Bell, Wrench, AlertTriangle, X } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const Announcements = () => {
   const { user } = useAuth();
@@ -10,97 +11,37 @@ const Announcements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [newAnnouncement, setNewAnnouncement] = useState({
-    title: '',
-    category: 'Notice',
-    department: '',
-    description: '',
-    priority: 'medium',
-    expires_at: ''
-  });
-  const [submitting, setSubmitting] = useState(false);
+
+  const isAdmin = user?.is_admin === true;
 
   useEffect(() => {
-    if (user) {
-      checkAdminRole();
-    }
     fetchAnnouncements();
-  }, [user]);
-
-  const checkAdminRole = async () => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('email', user.email)
-      .single();
-    if (data?.role === 'admin') {
-      setIsAdmin(true);
-    }
-  };
+  }, [filterStatus, searchTerm]);
 
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setAnnouncements(data || []);
+      const params = {};
+      if (filterStatus !== 'All') params.status = filterStatus.toLowerCase();
+      if (searchTerm) params.search = searchTerm;
+      const res = await api.get('/announcements', { params });
+      setAnnouncements(res.data || []);
     } catch (error) {
       console.error('Error fetching announcements:', error);
+      toast.error('Failed to load announcements');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateAnnouncement = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
+  const handleDeleteAnnouncement = async (announcementId) => {
+    if (!window.confirm('Delete this announcement?')) return;
     try {
-      const { data, error } = await supabase
-        .from('announcements')
-        .insert([{
-          title: newAnnouncement.title,
-          category: newAnnouncement.category,
-          department: newAnnouncement.department,
-          description: newAnnouncement.description,
-          priority: newAnnouncement.priority,
-          expires_at: newAnnouncement.expires_at || null,
-          status: 'active'
-        }])
-        .select();
-      if (error) throw error;
-      setAnnouncements([data[0], ...announcements]);
-      setShowCreateForm(false);
-      setNewAnnouncement({
-        title: '',
-        category: 'Notice',
-        department: '',
-        description: '',
-        priority: 'medium',
-        expires_at: ''
-      });
-      toast.success('Announcement created!');
-    } catch (error) {
-      console.error('Error creating announcement:', error);
-      toast.error('Failed to create announcement');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteAnnouncement = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
-    try {
-      await supabase.from('announcements').delete().eq('id', id);
-      setAnnouncements(announcements.filter(a => a.id !== id));
+      await api.delete(`/announcements/${announcementId}`);
       toast.success('Announcement deleted');
+      fetchAnnouncements();
     } catch (error) {
-      console.error('Error deleting announcement:', error);
-      toast.error('Failed to delete announcement');
+      toast.error(error.response?.data?.detail || 'Failed to delete');
     }
   };
 
@@ -120,17 +61,6 @@ const Announcements = () => {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const filteredAnnouncements = announcements.filter(announcement => {
-    const matchesSearch = announcement.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         announcement.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         announcement.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'All' || announcement.status === filterStatus.toLowerCase();
-    return matchesSearch && matchesStatus;
-  });
-
-  const categories = ['Notice', 'Closure', 'Maintenance', 'Emergency', 'Service'];
-  const priorities = ['low', 'medium', 'high', 'critical'];
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -140,27 +70,19 @@ const Announcements = () => {
           <p className="text-gray-600">Campus updates, closures & notices</p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search announcements..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a237e] bg-white"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          {isAdmin && (
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="bg-[#1a237e] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#0d1550] transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
-            >
-              <Plus size={20} /> Create Announcement
-            </button>
-          )}
+        {/* Search bar only – no create button */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Search announcements..."
+            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a237e] bg-white"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
+        {/* Status filter */}
         <div className="flex gap-2 mb-6">
           {['All', 'Active', 'Inactive'].map((status) => (
             <button
@@ -177,20 +99,21 @@ const Announcements = () => {
           ))}
         </div>
 
+        {/* Announcements list */}
         {loading ? (
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-[#1a237e] border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="text-gray-500 mt-2">Loading announcements...</p>
           </div>
-        ) : filteredAnnouncements.length === 0 ? (
+        ) : announcements.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <Bell size={48} className="mx-auto text-gray-300 mb-3" />
             <p>No announcements found.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredAnnouncements.map((announcement) => (
-              <div key={announcement.id} className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-orange-400 hover:shadow-md transition-shadow">
+            {announcements.map((announcement) => (
+              <div key={announcement.announcement_id} className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-orange-400 hover:shadow-md transition-shadow">
                 <div className="flex items-start gap-4">
                   <div className="mt-1">{getIcon(announcement.category)}</div>
                   <div className="flex-1">
@@ -212,13 +135,15 @@ const Announcements = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-400">{formatDate(announcement.created_at)}</span>
-                        <button
-                          onClick={() => handleDeleteAnnouncement(announcement.id)}
-                          className="text-red-400 hover:text-red-600 transition-colors"
-                          title="Delete announcement"
-                        >
-                          <X size={16} />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteAnnouncement(announcement.announcement_id)}
+                            className="text-red-400 hover:text-red-600 transition-colors"
+                            title="Delete announcement"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="text-sm text-gray-500 mb-1">{announcement.department}</p>

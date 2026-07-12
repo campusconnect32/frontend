@@ -1,11 +1,93 @@
 import React, { useState, useEffect } from 'react';
-import { quizData } from '../lib/quizData';
-import { getUniversityDegrees } from '../lib/universityQuizData';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
 
+// ======================  CATEGORY ICONS  ======================
+const CATEGORY_ICONS = {
+  'General Knowledge': '🧠',
+  'South African Trivia': '🇿🇦',
+  'Campus Life': '🏫',
+  'Current Affairs': '📰',
+  'Science & Technology': '🔬',
+  'Accounting & Accounting Science': '📊',
+  'Law (LLB)': '⚖️',
+  'Commerce (General/Finance/HR/Management)': '🏢',
+  'Economics & Economic Science': '📈',
+  'Information Systems': '💻',
+  'Politics, Philosophy & Economics': '📚',
+  'Computer Science': '💻',
+  'Actuarial Science': '📊',
+  'Biological Sciences': '🧬',
+  'Chemistry & Materials Science': '🧪',
+  'Civil Engineering': '🏗️',
+  'Electrical Engineering': '⚡',
+  'Mechanical Engineering': '🔧',
+  'Chemical Engineering': '🧪',
+  'Mining Engineering': '⛏️',
+  'Biomedical Engineering': '🏥',
+  'Architecture & Built Environment': '🏛️',
+  'Aeronautical Engineering': '✈️',
+  'Industrial Engineering': '🏭',
+  'Medicine (MBChB)': '🩺',
+  'Pharmacy': '💊',
+  'Nursing': '👩‍⚕️',
+  'Dentistry & Oral Health': '🦷',
+  'Physiotherapy & Occupational Therapy': '💪',
+  'Biomedical & Health Sciences': '🔬',
+  'Humanities': '📚',
+  'Education': '📖',
+  'Film, Theatre & Fine Arts': '🎭',
+  'Music': '🎵',
+  'Social Work & Community Development': '🤝',
+  'Speech-Language Pathology & Audiology': '🗣️',
+  'Geological & Geographical Sciences': '🌍',
+  'Environmental Studies': '🌿',
+  'Mathematics & Applied Maths': '➗',
+  'Physics & Astronomy': '🌌',
+  'Digital Arts (Engineering)': '🎨',
+  // University‑specific short forms
+  'Commerce': '💼',
+  'Engineering': '🔧',
+  'Health Sciences': '🏥',
+  'Science': '🔬',
+  'AgriSciences': '🌾',
+  'Veterinary Science': '🐕',
+  'Theology': '✝️',
+  'Art & Design': '🎨',
+  'Dentistry': '🦷',
+  'Accounting': '📊',
+  'Law': '⚖️',
+  'Economics': '📈',
+  'Information Technology': '💻',
+  'Politics': '📚',
+  'Actuarial': '📊',
+  'Biology': '🧬',
+  'Chemistry': '🧪',
+  'Civil': '🏗️',
+  'Electrical': '⚡',
+  'Mechanical': '🔧',
+  'Chemical': '🧪',
+  'Mining': '⛏️',
+  'Biomedical': '🏥',
+  'Architecture': '🏛️',
+  'Aeronautical': '✈️',
+  'Industrial': '🏭',
+  'Medicine': '🩺',
+  'Pharmacy': '💊',
+  'Nursing': '👩‍⚕️',
+  'Physiotherapy': '💪',
+  'Speech Pathology': '🗣️',
+  'Geology': '🌍',
+  'Environmental': '🌿',
+  'Mathematics': '➗',
+  'Physics': '🌌',
+  'Digital Arts': '🎨',
+};
+
+// =====================  COMPONENT  =====================
 function Quiz() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -15,15 +97,16 @@ function Quiz() {
   const [score, setScore] = useState(0);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [showDegree, setShowDegree] = useState(false);
+  const [approvedQuizzes, setApprovedQuizzes] = useState([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(true);
   const [university, setUniversity] = useState(null);
-  const [universityDegrees, setUniversityDegrees] = useState(null);
-  
-  // Submit Quiz Modal
+
+  // Submit Quiz Modal state
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [quizForm, setQuizForm] = useState({
     title: '',
-    category: 'General',
+    category: Object.keys(CATEGORY_ICONS)[0] || 'General Knowledge',
     questions: [
       {
         question: '',
@@ -34,24 +117,55 @@ function Quiz() {
     ]
   });
 
-  // Detect user's university from localStorage
+  // Detect user's university (or mirror university)
   useEffect(() => {
-    const saved = localStorage.getItem('selectedUniversity');
-    if (saved) {
-      try {
-        const uni = JSON.parse(saved);
-        setUniversity(uni);
-        const degrees = getUniversityDegrees(uni.id);
-        if (degrees) {
-          setUniversityDegrees(degrees);
+    const mirrorActive = localStorage.getItem('mirrorMode') === 'true';
+    if (mirrorActive) {
+      const mirrorName = localStorage.getItem('mirrorUniversityName');
+      const mirrorId = localStorage.getItem('mirrorUniversityId');
+      if (mirrorName && mirrorId) {
+        setUniversity({ name: mirrorName, id: mirrorId });
+      }
+    } else {
+      const saved = localStorage.getItem('selectedUniversity');
+      if (saved) {
+        try {
+          setUniversity(JSON.parse(saved));
+        } catch (e) {
+          console.error('Error parsing university:', e);
         }
-      } catch (e) {
-        console.error('Error parsing university:', e);
       }
     }
   }, []);
 
-  // Submit Quiz Functions
+  // Fetch approved quizzes from backend
+  useEffect(() => {
+    if (user) {
+      fetchApprovedQuizzes();
+    } else {
+      setApprovedQuizzes([]);
+      setLoadingQuizzes(false);
+    }
+  }, [user, university?.id]);
+
+  const fetchApprovedQuizzes = async () => {
+    setLoadingQuizzes(true);
+    try {
+      const res = await api.get('/quizzes');
+      const quizzes = res.data || [];
+      const processed = quizzes.map(q => ({
+        ...q,
+        questions: Array.isArray(q.questions) ? q.questions : JSON.parse(q.questions || '[]')
+      }));
+      setApprovedQuizzes(processed);
+    } catch (err) {
+      console.error('Failed to fetch quizzes', err);
+      toast.error('Could not load quizzes');
+    } finally {
+      setLoadingQuizzes(false);
+    }
+  };
+
   const addQuestion = () => {
     setQuizForm({
       ...quizForm,
@@ -115,23 +229,17 @@ function Quiz() {
     setSubmitting(true);
     
     try {
-      const pendingList = JSON.parse(localStorage.getItem('adminPendingQuizzes') || '[]');
-      const newSubmission = {
-        id: Date.now(),
-        ...quizForm,
-        status: 'pending',
-        submittedAt: new Date().toISOString(),
-        submittedBy: user?.email || 'Student'
-      };
-      
-      pendingList.push(newSubmission);
-      localStorage.setItem('adminPendingQuizzes', JSON.stringify(pendingList));
+      await api.post('/quizzes', {
+        title: quizForm.title.trim(),
+        category: quizForm.category,
+        questions: quizForm.questions
+      });
       
       toast.success('Quiz submitted for review!');
       setShowSubmitModal(false);
       setQuizForm({
         title: '',
-        category: 'General',
+        category: Object.keys(CATEGORY_ICONS)[0] || 'General Knowledge',
         questions: [
           {
             question: '',
@@ -141,6 +249,7 @@ function Quiz() {
           }
         ]
       });
+      fetchApprovedQuizzes();
     } catch (error) {
       console.error('Error submitting quiz:', error);
       toast.error('Failed to submit quiz. Please try again.');
@@ -149,45 +258,48 @@ function Quiz() {
     }
   };
 
-  const categoryOptions = [
-    'General',
-    'South African Trivia',
-    'Campus Life',
-    'Current Affairs',
-    'Science & Technology',
-    'Accounting & Accounting Science',
-    'Law (LLB)',
-    'Computer Science',
-    'Economics & Economic Science',
-    'Commerce (General/Finance/HR/Management)',
-    'Engineering & Built Environment',
-    'Health Sciences',
-    'Humanities',
-    'Science'
-  ];
+  // Build category lists with proper icons
+  const generalCategories = approvedQuizzes
+    .filter(q => !isDegreeCategory(q.category))
+    .map(q => ({
+      id: q.quiz_id,
+      name: q.title,
+      icon: CATEGORY_ICONS[q.category] || '📝',
+      questions: q.questions,
+      category: q.category,
+    }));
 
-  const categories = showDegree ? quizData.degreeCategories : quizData.categories;
+  const degreeCategories = approvedQuizzes
+    .filter(q => isDegreeCategory(q.category))
+    .map(q => ({
+      id: q.quiz_id,
+      name: q.title,
+      icon: CATEGORY_ICONS[q.category] || '📝',
+      questions: q.questions,
+      category: q.category,
+    }));
+
+  const currentCategories = showDegree ? degreeCategories : generalCategories;
   const currentQuestions = selectedCategory?.questions || [];
   const currentQuestion = currentQuestions[currentQuestionIndex];
 
-  // Get university-specific degree categories if available
-  const getUniversityCategories = () => {
-    if (universityDegrees && universityDegrees.degrees) {
-      return universityDegrees.degrees.map(deg => ({
-        id: deg.id,
-        name: deg.name,
-        icon: deg.icon || '🎓',
-        questions: deg.questions,
-        faculty: universityDegrees.name,
-        isUniversitySpecific: true
-      }));
-    }
-    return [];
-  };
+  // Helper: decide if a category is degree‑related (so we can split tabs)
+  function isDegreeCategory(cat) {
+    const degreeKeywords = [
+      'Accounting', 'Law', 'Commerce', 'Economics', 'Information Systems',
+      'Politics', 'Computer Science', 'Actuarial Science', 'Biological Sciences',
+      'Chemistry', 'Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering',
+      'Chemical Engineering', 'Mining Engineering', 'Biomedical Engineering', 'Architecture',
+      'Aeronautical Engineering', 'Industrial Engineering', 'Medicine', 'Pharmacy',
+      'Nursing', 'Dentistry', 'Physiotherapy', 'Biomedical Sciences', 'Humanities',
+      'Education', 'Film & Theatre', 'Music', 'Social Work', 'Speech Pathology',
+      'Geology', 'Environmental Studies', 'Mathematics', 'Physics', 'Digital Arts',
+      'AgriSciences', 'Veterinary Science', 'Theology', 'Art & Design', 'Dentistry'
+    ];
+    return degreeKeywords.some(k => cat.includes(k));
+  }
 
-  const universityCategories = getUniversityCategories();
-  const allDegreeCategories = [...universityCategories, ...quizData.degreeCategories];
-
+  // ---------- Category selection screen ----------
   if (!selectedCategory) {
     return (
       <div className="min-h-screen bg-[#FAFAF7]">
@@ -255,34 +367,43 @@ function Quiz() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-            {(showDegree ? allDegreeCategories : categories).map((cat) => (
-              <div
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat)}
-                style={{
-                  background: 'white',
-                  padding: '20px',
-                  borderRadius: '15px',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  border: cat.isUniversitySpecific ? '2px solid #4CAF50' : '2px solid transparent',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1a237e'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = cat.isUniversitySpecific ? '#4CAF50' : 'transparent'}
-              >
-                <div style={{ fontSize: '3rem' }}>{cat.icon || '📝'}</div>
-                <h3 style={{ color: '#1a237e', margin: '10px 0 5px' }}>{cat.name}</h3>
-                {cat.faculty && <p style={{ color: '#666', fontSize: '0.9rem', margin: '5px 0' }}>{cat.faculty}</p>}
-                <p style={{ color: '#888', fontSize: '0.9rem' }}>{cat.questions.length} questions</p>
-                {cat.isUniversitySpecific && (
-                  <p style={{ color: '#4CAF50', fontSize: '0.8rem', marginTop: '5px' }}>✅ Your University</p>
-                )}
-              </div>
-            ))}
-          </div>
+          {loadingQuizzes ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <Loader2 className="animate-spin" size={32} style={{ color: '#1a237e', margin: '0 auto' }} />
+              <p style={{ color: '#666', marginTop: '10px' }}>Loading quizzes...</p>
+            </div>
+          ) : currentCategories.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <p>No quizzes available yet in this section.</p>
+              <p style={{ fontSize: '14px', marginTop: '10px' }}>Be the first to submit one!</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+              {currentCategories.map((cat) => (
+                <div
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat)}
+                  style={{
+                    background: 'white',
+                    padding: '20px',
+                    borderRadius: '15px',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    border: '2px solid #4CAF50',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#1a237e'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#4CAF50'}
+                >
+                  <div style={{ fontSize: '3rem' }}>{cat.icon}</div>
+                  <h3 style={{ color: '#1a237e', margin: '10px 0 5px' }}>{cat.name}</h3>
+                  <p style={{ color: '#888', fontSize: '0.9rem' }}>{cat.questions.length} questions</p>
+                  {/* Removed the "✅ Approved" line */}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Submit Quiz Modal */}
@@ -303,91 +424,172 @@ function Quiz() {
             <div style={{
               background: 'white',
               borderRadius: '16px',
-              padding: '30px',
-              maxWidth: '600px',
+              maxWidth: '700px',
               width: '100%',
               maxHeight: '90vh',
-              overflow: 'auto'
+              overflowY: 'auto',
+              padding: '30px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ margin: 0, color: '#1a237e' }}>Submit a Quiz</h2>
-                <button onClick={() => setShowSubmitModal(false)} style={{ cursor: 'pointer', background: 'none', border: 'none', fontSize: '24px' }}>
+                <h2 style={{ color: '#1a237e', margin: 0 }}>📝 Submit a New Quiz</h2>
+                <button onClick={() => setShowSubmitModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                   <X size={24} />
                 </button>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>Quiz Title</label>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333' }}>Quiz Title</label>
                 <input
                   type="text"
                   value={quizForm.title}
-                  onChange={(e) => setQuizForm({...quizForm, title: e.target.value})}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }}
+                  onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
                   placeholder="e.g. Wits Campus History Quiz"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
                 />
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>Category</label>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333' }}>Category</label>
                 <select
                   value={quizForm.category}
-                  onChange={(e) => setQuizForm({...quizForm, category: e.target.value})}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }}
+                  onChange={(e) => setQuizForm({ ...quizForm, category: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
                 >
-                  {categoryOptions.map(cat => (
+                  {Object.keys(CATEGORY_ICONS).map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label style={{ fontWeight: 'bold' }}>Questions</label>
-                  <button onClick={addQuestion} style={{ padding: '4px 12px', background: '#1a237e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                    + Add Question
+              {/* Questions section (same as before) */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h3 style={{ color: '#1a237e', margin: 0 }}>Questions</h3>
+                  <button
+                    onClick={addQuestion}
+                    style={{
+                      background: '#1a237e',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Plus size={16} /> Add Question
                   </button>
                 </div>
 
                 {quizForm.questions.map((q, qIndex) => (
-                  <div key={qIndex} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '16px', marginTop: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong>Question {qIndex + 1}</strong>
-                      <button onClick={() => removeQuestion(qIndex)} style={{ color: 'red', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                  <div key={qIndex} style={{
+                    background: '#f9f9f9',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    marginBottom: '15px',
+                    border: '1px solid #eee'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <span style={{ fontWeight: 'bold', color: '#1a237e' }}>Question {qIndex + 1}</span>
+                      <button
+                        onClick={() => removeQuestion(qIndex)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f44336' }}
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
-                    <input
-                      type="text"
-                      value={q.question}
-                      onChange={(e) => updateQuestion(qIndex, 'question', e.target.value)}
-                      style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', marginTop: '8px' }}
-                      placeholder="Enter question..."
-                    />
-                    <div style={{ marginTop: '8px' }}>
+
+                    <div style={{ marginBottom: '10px' }}>
+                      <input
+                        type="text"
+                        value={q.question}
+                        onChange={(e) => updateQuestion(qIndex, 'question', e.target.value)}
+                        placeholder="Enter question text"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          fontSize: '14px'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '10px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: '#555' }}>Options</label>
                       {q.options.map((opt, oIndex) => (
-                        <div key={oIndex} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <div key={oIndex} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                          <span style={{ width: '20px', fontWeight: 'bold', color: '#1a237e' }}>
+                            {String.fromCharCode(65 + oIndex)}.
+                          </span>
                           <input
                             type="text"
                             value={opt}
                             onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
-                            style={{ flex: 1, padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
                             placeholder={`Option ${String.fromCharCode(65 + oIndex)}`}
+                            style={{
+                              flex: 1,
+                              padding: '8px',
+                              border: '1px solid #ddd',
+                              borderRadius: '8px',
+                              fontSize: '14px'
+                            }}
                           />
                         </div>
                       ))}
+                    </div>
+
+                    <div style={{ marginBottom: '10px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: '#555' }}>Correct Answer</label>
                       <select
                         value={q.correctAnswerIndex}
                         onChange={(e) => updateQuestion(qIndex, 'correctAnswerIndex', parseInt(e.target.value))}
-                        style={{ marginTop: '8px', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          fontSize: '14px'
+                        }}
                       >
                         {q.options.map((_, oIndex) => (
-                          <option key={oIndex} value={oIndex}>Correct: {String.fromCharCode(65 + oIndex)}</option>
+                          <option key={oIndex} value={oIndex}>
+                            Option {String.fromCharCode(65 + oIndex)}
+                          </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: '#555' }}>Explanation</label>
                       <textarea
                         value={q.explanation}
                         onChange={(e) => updateQuestion(qIndex, 'explanation', e.target.value)}
-                        style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', marginTop: '8px' }}
-                        placeholder="Explanation..."
-                        rows="2"
+                        placeholder="Explain why this is the correct answer..."
+                        rows={3}
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          resize: 'vertical'
+                        }}
                       />
                     </div>
                   </div>
@@ -400,16 +602,24 @@ function Quiz() {
                 style={{
                   width: '100%',
                   padding: '12px',
-                  background: '#1a237e',
+                  background: submitting ? '#ccc' : '#1a237e',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '16px',
                   fontWeight: 'bold',
-                  cursor: 'pointer'
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
               >
-                {submitting ? 'Submitting...' : 'Submit Quiz for Review'}
+                {submitting ? (
+                  <><Loader2 className="animate-spin" size={18} /> Submitting...</>
+                ) : (
+                  'Submit Quiz for Review'
+                )}
               </button>
             </div>
           </div>
@@ -418,6 +628,7 @@ function Quiz() {
     );
   }
 
+  // ---------- Quiz Completed Screen (unchanged) ----------
   if (quizCompleted) {
     const percentage = Math.round((score / currentQuestions.length) * 100);
     return (
@@ -457,6 +668,7 @@ function Quiz() {
     );
   }
 
+  // ---------- Question Screen (unchanged) ----------
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
       <Navbar />
@@ -484,9 +696,6 @@ function Quiz() {
         </button>
 
         <h2 style={{ color: '#1a237e' }}>{selectedCategory.icon} {selectedCategory.name}</h2>
-        {selectedCategory.isUniversitySpecific && (
-          <p style={{ color: '#4CAF50', fontSize: '0.9rem', marginTop: '4px' }}>🎓 Your University Quiz</p>
-        )}
         <p style={{ color: '#666' }}>Question {currentQuestionIndex + 1} of {currentQuestions.length}</p>
 
         <div style={{

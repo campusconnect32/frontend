@@ -8,12 +8,27 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+// ---------- Request interceptor ----------
 api.interceptors.request.use((config) => {
+  // Attach auth token
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  // If mirror mode is active, inject university_id query parameter
+  const mirrorActive = localStorage.getItem("mirrorMode") === "true";
+  const mirrorUniversityId = localStorage.getItem("mirrorUniversityId");
+  if (mirrorActive && mirrorUniversityId) {
+    // Add university_id to the request's query parameters
+    config.params = {
+      ...config.params,
+      university_id: mirrorUniversityId,
+    };
+  }
+
   return config;
 });
 
+// ---------- Response interceptor ----------
 api.interceptors.response.use(
   (response) => response,
   (error) => {
