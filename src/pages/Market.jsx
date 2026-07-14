@@ -58,7 +58,7 @@ export default function Market() {
     <div className="min-h-screen bg-[#FAFAF7]">
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="font-display text-3xl font-semibold">Marketplace</h1>
           <div className="flex gap-2">
             {hasOwnListings && (
@@ -159,7 +159,7 @@ export default function Market() {
 
                   <div className="p-3">
                     <h3 className="font-semibold text-sm leading-tight truncate">{item.title}</h3>
-                    <div className="mt-1 flex items-center justify-between">
+                    <div className="mt-1 flex items-center justify-between flex-wrap gap-1">
                       <span className="text-sm font-bold text-purple-700">{item.price}</span>
                       <span className="text-[10px] px-2 py-0.5 bg-gray-100 rounded-full whitespace-nowrap overflow-hidden text-ellipsis max-w-[80px]">
                         {item.category}
@@ -211,15 +211,15 @@ export default function Market() {
       {/* Info Dialog */}
       {infoDialog && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setInfoDialog(null)}>
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 animate-fade-in overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-semibold">{infoDialog.title}</h3>
+              <h3 className="font-display text-lg font-semibold break-words">{infoDialog.title}</h3>
               <button onClick={() => setInfoDialog(null)} className="p-1 rounded-full hover:bg-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {infoDialog.description && (
-              <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">{infoDialog.description}</p>
+              <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap break-words">{infoDialog.description}</p>
             )}
             <div className="space-y-2">
               <div>

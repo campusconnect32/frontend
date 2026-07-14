@@ -12,12 +12,10 @@ export default function Tutors() {
   const [loading, setLoading] = useState(false);
   const [hasOwnAds, setHasOwnAds] = useState(false);
 
-  // Fetch tutor list (runs on mount and when search changes)
   useEffect(() => {
     fetchTutors();
   }, []);
 
-  // Check if current user already has tutor ads – re‑runs whenever `user` becomes available
   useEffect(() => {
     if (user) {
       checkOwnAds();
@@ -126,7 +124,7 @@ export default function Tutors() {
                 <div className="p-4">
                   {/* Title + average rating */}
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-lg leading-tight">{t.title}</h3>
+                    <h3 className="font-semibold text-lg leading-tight break-words">{t.title}</h3>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
@@ -147,12 +145,12 @@ export default function Tutors() {
                   </div>
 
                   {/* Course info */}
-                  <p className="text-sm text-[#6B6B70] mt-1">
+                  <p className="text-sm text-[#6B6B70] mt-1 truncate">
                     {t.course_name} – {t.course_code}
                   </p>
 
                   {/* Price + Chat link */}
-                  <div className="mt-2 flex items-center justify-between">
+                  <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
                     <span className="chip chip-accent text-xs font-medium">
                       {t.price_range}
                     </span>

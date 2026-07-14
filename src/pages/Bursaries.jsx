@@ -56,7 +56,7 @@ export default function Bursaries() {
     <div className="min-h-screen bg-[#FAFAF7]">
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="font-display text-3xl font-semibold">Bursaries & Scholarships</h1>
           <div className="flex gap-2">
             {hasOwnPosts && (
@@ -114,64 +114,61 @@ export default function Bursaries() {
           <div className="text-center py-12 text-[#6B6B70]">No opportunities posted yet.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {bursaries.map(item => {
-              const isOwner = user?.user_id === item.user_id;
-              return (
-                <div key={item.bursary_id} className="bg-white border border-[#E7E5E0] rounded-xl overflow-hidden shadow-sm">
-                  {/* Image – well handled with object-contain */}
-                  <div className="relative w-full bg-[#F5F3EE]" style={{ paddingBottom: '75%' }}>
-                    {item.image ? (
-                      <img src={item.image} alt="" className="absolute inset-0 w-full h-full object-contain p-2" />
-                    ) : (
-                      <div className="absolute inset-0 w-full h-full flex items-center justify-center text-4xl">🎓</div>
-                    )}
-                    {/* Info icon */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setInfoDialog(item); }}
-                      className="absolute top-2 left-2 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center"
-                    >
-                      <Info className="w-4 h-4" />
-                    </button>
-                  </div>
+            {bursaries.map(item => (
+              <div key={item.bursary_id} className="bg-white border border-[#E7E5E0] rounded-xl overflow-hidden shadow-sm">
+                {/* Image – well handled with object-contain */}
+                <div className="relative w-full bg-[#F5F3EE]" style={{ paddingBottom: '75%' }}>
+                  {item.image ? (
+                    <img src={item.image} alt="" className="absolute inset-0 w-full h-full object-contain p-2" />
+                  ) : (
+                    <div className="absolute inset-0 w-full h-full flex items-center justify-center text-4xl">🎓</div>
+                  )}
+                  {/* Info icon */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setInfoDialog(item); }}
+                    className="absolute top-2 left-2 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                </div>
 
-                  <div className="p-3">
-                    <h3 className="font-semibold text-sm leading-tight truncate">{item.title}</h3>
+                <div className="p-3">
+                  <h3 className="font-semibold text-sm leading-tight truncate">{item.title}</h3>
 
-                    {/* Faculty tags */}
-                    {item.faculties && item.faculties.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {item.faculties.map(fac => (
-                          <span key={fac} className="text-[9px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full whitespace-nowrap">
-                            {fac.replace("Faculty of ", "")}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="mt-2 flex items-center justify-between">
-                      {item.link ? (
-                        <a
-                          href={item.link.startsWith('http') ? item.link : `https://${item.link}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          Learn more
-                        </a>
-                      ) : <span />}
-                      <Link
-                        to={`/bursaries/chat/${item.bursary_id}?other=${item.user_id}`}
-                        className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        Chat
-                      </Link>
+                  {/* Faculty tags */}
+                  {item.faculties && item.faculties.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {item.faculties.map(fac => (
+                        <span key={fac} className="text-[9px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full whitespace-nowrap">
+                          {fac.replace("Faculty of ", "")}
+                        </span>
+                      ))}
                     </div>
+                  )}
+
+                  <div className="mt-2 flex items-center justify-between flex-wrap gap-1">
+                    {item.link ? (
+                      <a
+                        href={item.link.startsWith('http') ? item.link : `https://${item.link}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Learn more
+                      </a>
+                    ) : <span />}
+                    <Link
+                      to={`/bursaries/chat/${item.bursary_id}?other=${item.user_id}`}
+                      className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Chat
+                    </Link>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -179,20 +176,20 @@ export default function Bursaries() {
       {/* Info Dialog */}
       {infoDialog && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setInfoDialog(null)}>
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 animate-fade-in overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-semibold">{infoDialog.title}</h3>
+              <h3 className="font-display text-lg font-semibold break-words">{infoDialog.title}</h3>
               <button onClick={() => setInfoDialog(null)} className="p-1 rounded-full hover:bg-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {infoDialog.description && (
-              <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">{infoDialog.description}</p>
+              <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap break-words">{infoDialog.description}</p>
             )}
             <div className="space-y-2">
               <div>
                 <p className="text-xs font-semibold uppercase text-gray-500">Posted by</p>
-                <p className="text-sm">{infoDialog.seller_name || "Unknown"}</p>
+                <p className="text-sm break-words">{infoDialog.seller_name || "Unknown"}</p>
               </div>
               {infoDialog.seller_phone && (
                 <div className="flex items-center gap-2">
@@ -203,7 +200,7 @@ export default function Bursaries() {
               {(infoDialog.seller_city || infoDialog.seller_country) && (
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-gray-500" />
-                  <p className="text-sm">
+                  <p className="text-sm break-words">
                     {[infoDialog.seller_city, infoDialog.seller_country].filter(Boolean).join(", ") || "No location"}
                   </p>
                 </div>
