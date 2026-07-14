@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import "@/App.css";
@@ -50,8 +50,6 @@ const Support = React.lazy(() => import("@/pages/Support"));
 const CheckEmail = React.lazy(() => import("@/pages/CheckEmail"));
 const Resources = React.lazy(() => import("@/pages/Resources"));
 const SocialGroups = React.lazy(() => import("@/pages/SocialGroups"));
-const GroupChat = React.lazy(() => import("@/pages/GroupChat"));
-// NEW FEEDBACK IMPORT
 const Feedback = React.lazy(() => import("@/pages/Feedback"));
 
 function LoadingScreen() {
@@ -72,8 +70,10 @@ function SpinnerScreen() {
 
 function AuthOnlyRoute({ children }) {
   const { user, loading } = useAuth();
+
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+
   return children;
 }
 
@@ -94,15 +94,6 @@ function RootRoute() {
       window.removeEventListener("storage", handleChange);
     };
   }, []);
-
-  const mirrorActive = localStorage.getItem("mirrorMode") === "true";
-  const mirrorUniId = localStorage.getItem("mirrorUniversityId");
-  const mirrorUniName = localStorage.getItem("mirrorUniversityName");
-  const mirrorUniShort = localStorage.getItem("mirrorUniversityShort");
-
-  if (mirrorActive && mirrorUniId && user) {
-    return <Home />;
-  }
 
   if (!savedUniversity) {
     return <UniversitySelect />;
@@ -128,32 +119,28 @@ function AppRouter() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/support" element={<Support />} />
+        <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/university-select" element={<UniversitySelect />} />
 
-        {/* PROTECTED ROUTES */}
-        <Route path="/events" element={<AuthOnlyRoute><Events /></AuthOnlyRoute>} />
-        <Route path="/announcements" element={<AuthOnlyRoute><Announcements /></AuthOnlyRoute>} />
-        <Route path="/quiz" element={<AuthOnlyRoute><Quiz /></AuthOnlyRoute>} />
-        <Route path="/lost-found" element={<AuthOnlyRoute><LostFound /></AuthOnlyRoute>} />
-        <Route path="/directions" element={<AuthOnlyRoute><Directions /></AuthOnlyRoute>} />
-        <Route path="/tutors" element={<AuthOnlyRoute><Tutors /></AuthOnlyRoute>} />
-        <Route path="/market" element={<AuthOnlyRoute><Market /></AuthOnlyRoute>} />
-        <Route path="/bursaries" element={<AuthOnlyRoute><Bursaries /></AuthOnlyRoute>} />
-        <Route path="/clubs" element={<AuthOnlyRoute><Clubs /></AuthOnlyRoute>} />
-
-        <Route path="/resources" element={<AuthOnlyRoute><Resources /></AuthOnlyRoute>} />
-        <Route path="/social" element={<AuthOnlyRoute><SocialGroups /></AuthOnlyRoute>} />
-        <Route path="/social/group/:groupId" element={<AuthOnlyRoute><GroupChat /></AuthOnlyRoute>} />
-
-        {/* FEEDBACK ROUTE */}
-        <Route path="/feedback" element={<AuthOnlyRoute><Feedback /></AuthOnlyRoute>} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/announcements" element={<Announcements />} />
+        <Route path="/quiz" element={<Quiz />} />
+        <Route path="/lost-found" element={<LostFound />} />
+        <Route path="/directions" element={<Directions />} />
+        <Route path="/tutors" element={<Tutors />} />
+        <Route path="/market" element={<Market />} />
+        <Route path="/bursaries" element={<Bursaries />} />
+        <Route path="/clubs" element={<Clubs />} />
+        
+        {/* New routes */}
+        <Route path="/resources" element={<Resources />} />
+        <Route path="/social-groups" element={<SocialGroups />} />
+        <Route path="/feedback" element={<Feedback />} />
 
         <Route path="/admin" element={<AuthOnlyRoute><AdminDashboard /></AuthOnlyRoute>} />
-
         <Route path="/profile/setup" element={<AuthOnlyRoute><ProfileSetup /></AuthOnlyRoute>} />
         <Route path="/profile" element={<AuthOnlyRoute><Profile /></AuthOnlyRoute>} />
         <Route path="/accept-privacy" element={<AuthOnlyRoute><AcceptPrivacy /></AuthOnlyRoute>} />
-
         <Route path="/stories" element={<AuthOnlyRoute><Stories /></AuthOnlyRoute>} />
         <Route path="/stories/find" element={<AuthOnlyRoute><FindUsers /></AuthOnlyRoute>} />
 
@@ -178,7 +165,7 @@ function AppRouter() {
         <Route path="/bursaries/my-posts" element={<AuthOnlyRoute><MyBursaries /></AuthOnlyRoute>} />
         <Route path="/bursaries/edit/:bursaryId" element={<AuthOnlyRoute><BursaryEdit /></AuthOnlyRoute>} />
         <Route path="/bursaries/chat/:bursaryId" element={<AuthOnlyRoute><BursaryChat /></AuthOnlyRoute>} />
-        <Route path="/check-email" element={<CheckEmail />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
