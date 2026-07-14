@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import {
   Brain,
   MapPin,
-  Navigation,
   Calendar,
   Megaphone,
-  Users,
   BookOpen,
   ShoppingBag,
-  DollarSign
+  DollarSign,
+  Library,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
@@ -41,15 +42,6 @@ const Home = () => {
       link: '/announcements',
       color: 'bg-orange-100 text-orange-700',
       border: 'border-orange-200'
-    },
-    {
-      id: 'clubs',
-      title: 'Clubs',
-      description: 'Campus clubs & groups — connect with your community',
-      icon: Users,
-      link: '/clubs',
-      color: 'bg-yellow-100 text-yellow-700',
-      border: 'border-yellow-200'
     },
     {
       id: 'events',
@@ -88,13 +80,31 @@ const Home = () => {
       border: 'border-purple-200'
     },
     {
-      id: 'directions',
-      title: 'Directions',
-      description: 'Walkthrough videos and step-by-step campus directions',
-      icon: Navigation,
-      link: '/directions',
-      color: 'bg-green-100 text-green-700',
-      border: 'border-green-200'
+      id: 'resources',
+      title: 'Resources',
+      description: 'Access study materials, guides, and helpful resources',
+      icon: Library,
+      link: '/resources',
+      color: 'bg-teal-100 text-teal-700',
+      border: 'border-teal-200'
+    },
+    {
+      id: 'social',
+      title: 'Social Groups',
+      description: 'Connect with others in campus social groups',
+      icon: Users,
+      link: '/social-groups',
+      color: 'bg-yellow-100 text-yellow-700',
+      border: 'border-yellow-200'
+    },
+    {
+      id: 'feedback',
+      title: 'Feedback',
+      description: 'Share your thoughts and help us improve CampusConnect',
+      icon: MessageSquare,
+      link: '/feedback',
+      color: 'bg-cyan-100 text-cyan-700',
+      border: 'border-cyan-200'
     }
   ];
 
